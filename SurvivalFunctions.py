@@ -16,6 +16,7 @@ def compute_survival(survival_data):
         KM_curve. Kaplan Meyer curve. It is an array with the values of the Kaplan Meyer survival curve S_hat (first element is 1)
         KM_times_staircase. Similar to KM_times, but it is an array that can be used for plotting time versus survival in the typical "staircase" plots.
         KM_curve_staircase. Similar to KM_curve, but it is an array that can be used for plotting time versus survival in the typical "staircase" plots. 
+        median_survival_time. The median survival time, defined as the first time the KM curve drops below 0.5. It is 0 if the curve never drops below 0.5
         all_times. It is an array with all the times of event (deaths or otherwise)
         n_i. It is an array with the total number of individuals still alive just before the corresponding time in the array 'all_times'
         deaths. It is an array with the total number of individuals who dies at the corresponding time in the array 'all_times'
@@ -76,11 +77,18 @@ def compute_survival(survival_data):
         d_i.append(deaths_at_i)
         lost_i.append(lost_at_i)
 
+    median_surv = 0
+    for i in range (0,len(S_hat)):
+        if (S_hat[i] < 0.5):
+            median_surv = times_of_death[i]
+            break
+
     return  {
         'KM_times' : times_of_death,
         'KM_curve' : S_hat,
         'KM_times_staircase' : times_of_death_plot,
         'KM_curve_staircase' : S_hat_plot,
+        'median_survival_time' : median_surv,
         'all_times' : all_times,
         'n_i' : n_i,
         'deaths' : d_i,

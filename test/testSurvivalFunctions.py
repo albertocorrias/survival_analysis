@@ -32,7 +32,9 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(survival_pluto['KM_curve'][4],0.48,2)
         self.assertAlmostEqual(survival_pluto['KM_curve'][5],0.36,2)
         self.assertAlmostEqual(survival_pluto['KM_curve'][6],0.18,2)
-        
+
+        self.assertAlmostEqual(survival_pluto['median_survival_time'], 8.0,4)
+
         #Checking time of all events
         self.assertEqual(len(survival_pluto['all_times']),8)
         self.assertAlmostEqual(survival_pluto['all_times'][0],0.0,4)
@@ -140,7 +142,8 @@ class TestSurvivalFunctions(unittest.TestCase):
         # from lifelines import KaplanMeierFitter
         # kmf = KaplanMeierFitter()
         # kmf.fit(autologous_time_of_events, event_observed=autologous_type_of_events)  # or, more succinctly, kmf.fit(T, E)
-        # print(kmf.survival_function_['KM_estimate']) and removing duplicates....
+        # print(kmf.survival_function_['KM_estimate']) #and removing duplicates....
+        # print(kmf.median_survival_time_) #17.0
 
         lifelines_correct = np.array([1.000000,0.909091, 0.848485, 0.818182, 0.787879, 0.757576, 0.727273, 0.696970, 0.636364, 0.606061, 0.545455, 0.515152, 0.484848,\
                                      0.420202, 0.387879, 0.323232, 0.290909, 0.145455])
@@ -149,8 +152,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         for i in range(0,len(survival_autologous['KM_times'])):
             self.assertAlmostEqual(survival_autologous['KM_curve'][i],lifelines_correct[i],3)
 
-
-        
+        self.assertAlmostEqual(17.0,survival_autologous['median_survival_time'])
         
     def test_AllogenicExample(self):
         allogenic_time_of_events = [1,2,3,4,6,7,12,15,20,21,24,30,60,85,85,86,87,90,100,119,132]
@@ -181,6 +183,8 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(survival_allogenic['KM_curve'][6],0.714,2)
         self.assertAlmostEqual(survival_allogenic['KM_curve'][7],0.666,2)
         self.assertAlmostEqual(survival_allogenic['KM_curve'][8],0.605,2)
+
+        self.assertAlmostEqual(survival_allogenic['median_survival_time'], 0) #Curve never drops below 0.5, test defualt value of 0
         
     def test_CompareAutologousAllogenic(self):
         #autologous versus allogenic example. Stanton Glantz, page 240
