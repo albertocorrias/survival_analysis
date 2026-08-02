@@ -155,8 +155,105 @@ def compare_survivals(survival_1, survival_2):
     return {'u_L' : u_l,
             's_2_l' : s_2_l}
 
+def cox_newton_raphson(time, event, X, max_iter=50, tol=1e-8):
+    """
+    Fit a Cox proportional hazards model using Newton-Raphson.
 
+    Parameters
+    ----------
+    time : array-like, shape (n,)
+        Observed follow-up times.
 
+    event : array-like, shape (n,)
+        Event indicator: 1 = event, 0 = censored.
+
+    X : array-like, shape (n, p)
+        Covariate matrix. For two groups, this can be a single column
+        with 0 = control and 1 = treatment.
+
+    max_iter : int
+        Maximum Newton-Raphson iterations.
+
+    tol : float
+        Convergence tolerance.
+
+    Returns
+    -------
+    beta : ndarray, shape (p,)
+        Estimated Cox coefficients.
+
+    hr : ndarray, shape (p,)
+        Hazard ratios, exp(beta).
+
+    se : ndarray, shape (p,)
+        Approximate standard errors.
+
+    loglik : float
+        Final partial log-likelihood.
+    """
+
+    time = np.asarray(time, dtype=float)
+    event = np.asarray(event, dtype=int)
+    X = np.asarray(X, dtype=float)
+
+    if X.ndim == 1:
+        X = X.reshape(-1, 1)
+
+    n, p = X.shape
+    beta = np.zeros(p)
+
+    for iteration in range(max_iter):
+        loglik = 0.0
+        score = np.zeros(p)
+        hessian = np.zeros((p, p))
+
+        # Loop over observed events
+        for j in range(n):
+            if event[j] != 1:
+                continue
+
+            # Risk set: everyone still at risk at time[j]
+            risk = time >= time[j]
+
+            X_risk = X[risk]
+            eta_risk = X_risk @ beta
+            weights = np.exp(eta_risk)
+
+            S0 = np.sum(weights)
+            S1 = np.sum(X_risk * weights[:, None], axis=0)
+            S2 = X_risk.T @ (X_risk * weights[:, None])
+
+            x_bar = S1 / S0
+
+            loglik += X[j] @ beta - np.log(S0)
+
+            score += X[j] - x_bar
+
+            weighted_second_moment = S2 / S0
+            weighted_covariance = weighted_second_moment - np.outer(x_bar, x_bar)
+
+            hessian -= weighted_covariance
+
+        # Newton-Raphson step:
+        # beta_new = beta - inv(H) score
+        # Use solve instead of explicitly forming inv(H)
+        step = np.linalg.solve(hessian, score)
+        beta_new = beta - step
+
+        if np.max(np.abs(beta_new - beta)) < tol:
+            beta = beta_new
+            break
+
+        beta = beta_new
+
+    # Observed information is -Hessian at convergence
+    information = -hessian
+    variance = np.linalg.inv(information)
+    se = np.sqrt(np.diag(variance))
+
+    hr = np.exp(beta)
+
+    return beta, hr, se, loglik
 
 
 

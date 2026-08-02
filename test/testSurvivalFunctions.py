@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from SurvivalFunctions import compute_survival, compare_survivals
+from SurvivalFunctions import compute_survival, compare_survivals, cox_newton_raphson
 
 #[times_of_death,S_hat,all_times, n_i, d_i, lost_i, times_of_death_plot, S_hat_plot]
 class TestSurvivalFunctions(unittest.TestCase):
@@ -208,3 +208,15 @@ class TestSurvivalFunctions(unittest.TestCase):
 
         self.assertAlmostEqual(results_other_way['u_L'],-6.575,2)
         self.assertAlmostEqual(results_other_way['s_2_l'],7.884,2)
+    def test_cox_textbook(self):
+        time = np.array([2, 3, 4, 5, 6, 7])
+        event = np.array([1, 0, 1, 1, 0, 1])
+        group = np.array([0, 0, 1, 1, 0, 1])
+        
+        beta, hr, se, loglik = cox_newton_raphson(time, event, group)
+        
+        self.assertAlmostEqual(beta[0], 0.12853,4)
+        self.assertAlmostEqual(hr[0], 1.13715,4)
+        self.assertAlmostEqual(se[0], 1.2535,4)
+        self.assertAlmostEqual(loglik, -4.2713,4)
+
