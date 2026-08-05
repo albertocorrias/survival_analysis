@@ -3,7 +3,7 @@ import numpy as np
 
 def compute_survival(survival_data):
     """
-    Calculates KAplan Meyer survival curves
+    Calculates Kaplan Meyer survival curves
     
     Parameters
     ----------
@@ -65,8 +65,8 @@ def compute_survival(survival_data):
         time_of_interest = time_of_events[i]
         #determine number of events at this time
         n_events = np.count_nonzero(time_of_events == time_of_interest)
-        deaths_at_i=0;
-        lost_at_i = 0;
+        deaths_at_i=0
+        lost_at_i = 0
         for j in range (i,i+n_events):
             if (type_of_events[j]==1):#There was a death
                 deaths_at_i=deaths_at_i+1
@@ -75,7 +75,7 @@ def compute_survival(survival_data):
            
         if (deaths_at_i>0):            
             S_hat_plot.append(S_hat[-1])
-            times_of_death_plot.append(time_of_interest);
+            times_of_death_plot.append(time_of_interest)
             new_surv_frac = float(n_i[-1]-deaths_at_i)/n_i[-1]
             new_value = S_hat[-1]*new_surv_frac
             S_hat.append(new_value)
@@ -170,20 +170,24 @@ def compare_survivals(survival_1, survival_2):
     return {'u_L' : u_l,
             's_2_l' : s_2_l}
 
-def cox_newton_raphson(time, event, X, max_iter=50, tol=1e-8):
+def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
     """
     Fit a Cox proportional hazards model using Newton-Raphson.
 
     Parameters
     ----------
-    time : array-like, shape (n,)
-        Observed follow-up times.
-
-    event : array-like, shape (n,)
-        Event indicator: 1 = event, 0 = censored.
+    survival_data: 
+        a Numpy matrix with two columns.
+        Each row of the matrix corresponds to an individual. 
+        The first columns contains the time, since enrollment, of an event related 
+        to the individual. The event can be detah or lost to follow up
+        If the event is death, the correspomnding element in the second column is 1
+        If the event is not death, the correspomnding element in the second column is 0
+        The patients do not need to be sorted in any way
 
     X : array-like, shape (n, p)
-        Covariate matrix. For two groups, this can be a single column
+        Covariate matrix. p is the number of covariates. 
+        For two groups, p=1 and X can be a single column
         with 0 = control and 1 = treatment.
 
     max_iter : int
@@ -207,68 +211,86 @@ def cox_newton_raphson(time, event, X, max_iter=50, tol=1e-8):
         Final partial log-likelihood.
     """
 
-    time = np.asarray(time, dtype=float)
-    event = np.asarray(event, dtype=int)
+    time = survival_data[:,0]
+    event = survival_data[:,1] 
     X = np.asarray(X, dtype=float)
 
     if X.ndim == 1:
         X = X.reshape(-1, 1)
 
-    n, p = X.shape
+    n, p = X.shape # n rows, p columns
     beta = np.zeros(p)
-
+    risk_mask = np.zeros(n,dtype=bool)
+    tied_event_mask = np.zeros(n,dtype=bool)
+    unique_times = np.sort(np.unique(time[event == 1]))
+    small_delta = 1e-9 #Small delta to improve numerical stability of nearly singular hessian matrices
     for iteration in range(max_iter):
         loglik = 0.0
-        score = np.zeros(p)
+        U_beta = np.zeros(p) #This is U(beta) in the slides->the derivative of l(beta) ->the one to be put to 0
         hessian = np.zeros((p, p))
 
-        # Loop over observed events
-        for j in range(n):
-            if event[j] != 1:
-                continue
+        # Loop over unique observed events
+        for unique_t in unique_times:
 
-            # Risk set: everyone still at risk at time[j]
-            risk = time >= time[j]
+            # Risk set: everyone still at risk at unique_t (we will mark those as "true")
+            for r in range(0,n):
+                if (time[r] >= unique_t):
+                    risk_mask[r] = True
+                else:
+                    risk_mask[r] = False
+            
+            X_risk = X[risk_mask] #Isolate only those at risk (this is "i belonging to Rj" in the slides)
 
-            X_risk = X[risk]
-            eta_risk = X_risk @ beta
-            weights = np.exp(eta_risk)
+            x_i_transp_beta = X_risk.dot(beta) #x_i * beta in the slides
+            weights = np.exp(x_i_transp_beta) #Exponential of the above
+            weights_col = weights.reshape(len(weights),1)#make this aray (n,1) for multiplication below
+            #Risk summations 
+            sum_exp_term = np.sum(weights_col) #Summation of the pure exponential term
+            S1 = np.sum(X_risk * weights_col, axis=0) #Multiplies each column of X_risk by weights_col
+            S2 = (X_risk.T).dot(X_risk * weights_col) #The term 
 
-            S0 = np.sum(weights)
-            S1 = np.sum(X_risk * weights[:, None], axis=0)
-            S2 = X_risk.T @ (X_risk * weights[:, None])
+            x_bar = S1 / sum_exp_term #see slides
 
-            x_bar = S1 / S0
+            #Breslow tie-breaker, count deaths
+            for pt in range(0,n):
+                if (time[pt] == unique_t):#TODO make it robust for non-integers
+                    tied_event_mask[pt] = True
+                else:
+                    tied_event_mask[pt] = False
+            X_event = X[tied_event_mask]
+            d_t = X_event.shape[0] #number of deaths inferred by the shape
 
-            loglik += X[j] @ beta - np.log(S0)
+            x_event_sum = np.sum(X_event, axis=0)
+            loglik += np.sum(X_event.dot(beta)) - d_t * np.log(sum_exp_term) 
 
-            score += X[j] - x_bar
+            hessian_term = S2 / sum_exp_term - np.outer(x_bar, x_bar) #Term in Hessian summation formula
 
-            weighted_second_moment = S2 / S0
-            weighted_covariance = weighted_second_moment - np.outer(x_bar, x_bar)
+            U_beta += x_event_sum - d_t * x_bar #See formula in the slides
+            hessian -= d_t * hessian_term
 
-            hessian -= weighted_covariance
-
+        hessian_stable = hessian - small_delta * np.eye(p) #stabilize hessian for nearly singular cases (AI suggestion here)
         # Newton-Raphson step:
-        # beta_new = beta - inv(H) score
-        # Use solve instead of explicitly forming inv(H)
-        step = np.linalg.solve(hessian, score)
+        # beta_new = beta - inv(H) * U_beta
+        # Faster solve instead of explicitly calculating inv(H)
+        step = np.linalg.solve(hessian_stable, U_beta)
         beta_new = beta - step
 
-        if np.max(np.abs(beta_new - beta)) < tol:
+        if np.max(np.abs(U_beta)) < tol:#Checking that U_beta is zero #TODO possible to add convergence on |beta_new-beta|
             beta = beta_new
             break
 
         beta = beta_new
 
     # Observed information is -Hessian at convergence
-    information = -hessian
-    variance = np.linalg.inv(information)
-    se = np.sqrt(np.diag(variance))
+    variance = np.linalg.inv(-hessian)
 
-    hr = np.exp(beta)
-
-    return beta, hr, se, loglik
+    ret = {
+        'hazard_ratios' : np.exp(beta),
+        'standard_errors' : np.sqrt(np.diag(variance)),
+        'beta' : beta,
+        'log_likelihood' : loglik
+    }
+    return ret
 
 
 

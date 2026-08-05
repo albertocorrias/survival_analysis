@@ -211,12 +211,78 @@ class TestSurvivalFunctions(unittest.TestCase):
     def test_cox_textbook(self):
         time = np.array([2, 3, 4, 5, 6, 7])
         event = np.array([1, 0, 1, 1, 0, 1])
+        survival_data = np.column_stack([time, event])
         group = np.array([0, 0, 1, 1, 0, 1])
         
-        beta, hr, se, loglik = cox_newton_raphson(time, event, group)
+        result = cox_newton_raphson(survival_data, group)
         
-        self.assertAlmostEqual(beta[0], 0.12853,4)
-        self.assertAlmostEqual(hr[0], 1.13715,4)
-        self.assertAlmostEqual(se[0], 1.2535,4)
-        self.assertAlmostEqual(loglik, -4.2713,4)
+        self.assertAlmostEqual(result['beta'][0], 0.12853,4)
+        self.assertAlmostEqual(result['hazard_ratios'][0], 1.13715,4)
+        self.assertAlmostEqual(result['standard_errors'][0], 1.2535,4)
+        self.assertAlmostEqual(result['log_likelihood'], -4.2713,4)
 
+    def test_against_lifelines(self):
+        
+        #The following code was run after pip install lifelines
+
+        # from lifelines.datasets import load_regression_dataset
+        # from lifelines import CoxPHFitter
+        # import pandas as pd
+        # regression_dataset = load_regression_dataset() # a Pandas DataFrame
+        # # Using Cox Proportional Hazards model
+        # cph = CoxPHFitter()
+        # cph.fit(regression_dataset, 'T', event_col='E')
+        # cph.print_summary()
+        # #Convert to numpy for storing
+        # matrix = regression_dataset.to_numpy()
+        # np.savetxt("test/data/lifeline_data.txt", matrix)
+
+        #GENERATED OUTPUT (see https://lifelines.readthedocs.io/en/latest/Quickstart.html#survival-regression)
+        #lifelines.CoxPHFitter: fitted with 200 total observations, 11 right-censored observations>
+        #               duration col = 'T'
+        #                    event col = 'E'
+        #        baseline estimation = breslow
+        #    number of observations = 200
+        #    number of events observed = 189
+        #    partial log-likelihood = -807.62
+        #            time fit was run = 2026-08-05 10:12:38 UTC
+
+        #           coef exp(coef)  se(coef)  coef lower 95%  coef upper 95% exp(coef) lower 95% exp(coef) upper 95%
+        #    covariate                                                                                                  
+        #    var1       0.22      1.25      0.07            0.08            0.37                1.08                1.44
+        #    var2       0.05      1.05      0.08           -0.11            0.21                0.89                1.24
+        #    var3       0.22      1.24      0.08            0.07            0.37                1.07                1.44
+
+         #           cmp to    z      p  -log2(p)
+         #   covariate                              
+         #   var1         0.00 2.99 <0.005      8.49
+         #   var2         0.00 0.61   0.54      0.89
+         #   var3         0.00 2.88 <0.005      7.97
+         #   ---
+         #   Concordance = 0.58
+         #   Partial AIC = 1621.24
+         #   log-likelihood ratio test = 15.54 on 3 df
+         #   -log2(p) of ll-ratio test = 9.47
+
+        
+        lifeline_data = np.genfromtxt('test/data/lifeline_data.txt')
+        var_1 = lifeline_data[:,0]
+        var_2 = lifeline_data[:,1]
+        var_3 = lifeline_data[:,2]
+        times = lifeline_data[:,3]
+        events = lifeline_data[:,4]
+        for i in range(len(events)):
+            events[i] = int(events[i])
+        survival_data = np.column_stack([times, events])
+        vars_l = np.column_stack([var_1,var_2,var_3])
+        result = cox_newton_raphson(survival_data,vars_l)
+        self.assertAlmostEqual(result['beta'][0],0.22,2)
+        self.assertAlmostEqual(result['beta'][1],0.05,2)
+        self.assertAlmostEqual(result['beta'][2],0.22,2)
+        self.assertAlmostEqual(result['standard_errors'][0],0.07,2)
+        self.assertAlmostEqual(result['standard_errors'][1],0.08,2)
+        self.assertAlmostEqual(result['standard_errors'][2],0.08,2)
+        self.assertAlmostEqual(result['log_likelihood'],-807.62,2)
+        self.assertAlmostEqual(result['hazard_ratios'][0],1.25,2) #exp(coef) in the lifelines output
+        self.assertAlmostEqual(result['hazard_ratios'][1],1.05,2) #exp(coef) in the lifelines output
+        self.assertAlmostEqual(result['hazard_ratios'][2],1.24,2) #exp(coef) in the lifelines output
