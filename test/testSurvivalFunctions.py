@@ -238,6 +238,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         # np.savetxt("test/data/lifeline_data.txt", matrix)
 
         #GENERATED OUTPUT (see https://lifelines.readthedocs.io/en/latest/Quickstart.html#survival-regression)
+        #
         #lifelines.CoxPHFitter: fitted with 200 total observations, 11 right-censored observations>
         #               duration col = 'T'
         #                    event col = 'E'
@@ -276,13 +277,13 @@ class TestSurvivalFunctions(unittest.TestCase):
         survival_data = np.column_stack([times, events])
         vars_l = np.column_stack([var_1,var_2,var_3])
         result = cox_newton_raphson(survival_data,vars_l)
-        self.assertAlmostEqual(result['beta'][0],0.22,2)
-        self.assertAlmostEqual(result['beta'][1],0.05,2)
-        self.assertAlmostEqual(result['beta'][2],0.22,2)
-        self.assertAlmostEqual(result['standard_errors'][0],0.07,2)
-        self.assertAlmostEqual(result['standard_errors'][1],0.08,2)
-        self.assertAlmostEqual(result['standard_errors'][2],0.08,2)
-        self.assertAlmostEqual(result['log_likelihood'],-807.62,2)
+        self.assertAlmostEqual(result['beta'][0],0.22,2)#coef in the lifelines output
+        self.assertAlmostEqual(result['beta'][1],0.05,2)#coef in the lifelines output
+        self.assertAlmostEqual(result['beta'][2],0.22,2)#coef in the lifelines output
+        self.assertAlmostEqual(result['standard_errors'][0],0.07,2)#se coef in the lifelines output
+        self.assertAlmostEqual(result['standard_errors'][1],0.08,2)#se coef in the lifelines output
+        self.assertAlmostEqual(result['standard_errors'][2],0.08,2)#se coef in the lifelines output
+        self.assertAlmostEqual(result['log_likelihood'],-807.62,2)#partial log-likelihood  in the lifelines output
         self.assertAlmostEqual(result['hazard_ratios'][0],1.25,2) #exp(coef) in the lifelines output
         self.assertAlmostEqual(result['hazard_ratios'][1],1.05,2) #exp(coef) in the lifelines output
         self.assertAlmostEqual(result['hazard_ratios'][2],1.24,2) #exp(coef) in the lifelines output

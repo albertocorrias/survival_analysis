@@ -177,7 +177,7 @@ def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
     Parameters
     ----------
     survival_data: 
-        a Numpy matrix with two columns.
+        a Numpy matrix with two columns and n rows.
         Each row of the matrix corresponds to an individual. 
         The first columns contains the time, since enrollment, of an event related 
         to the individual. The event can be detah or lost to follow up
@@ -205,14 +205,14 @@ def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
         Hazard ratios, exp(beta).
 
     se : ndarray, shape (p,)
-        Approximate standard errors.
+        Approximate standard errors of the coefficients beta.
 
     loglik : float
         Final partial log-likelihood.
     """
 
     time = survival_data[:,0]
-    event = survival_data[:,1] 
+    event =  np.round(survival_data[:,1]).astype(int) #Rounded to nearest integer, then cast to make sure == operator works
     X = np.asarray(X, dtype=float)
 
     if X.ndim == 1:
@@ -222,8 +222,12 @@ def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
     beta = np.zeros(p)
     risk_mask = np.zeros(n,dtype=bool)
     tied_event_mask = np.zeros(n,dtype=bool)
-    unique_times = np.sort(np.unique(time[event == 1]))
-    small_delta = 1e-9 #Small delta to improve numerical stability of nearly singular hessian matrices
+    unique_times = np.sort(np.unique(time[event == 1]))#Here is where the fact that death=1 in the second column is assumed
+
+    numerical_stability_delta = 1e-9 #Small delta to improve numerical stability of nearly singular hessian matrices
+    float_tol = 1e-12 #Anpther tolerance to check equality of two floating point times
+    
+    #Main Newton-Raphson iterative loop
     for iteration in range(max_iter):
         loglik = 0.0
         U_beta = np.zeros(p) #This is U(beta) in the slides->the derivative of l(beta) ->the one to be put to 0
@@ -238,22 +242,20 @@ def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
                     risk_mask[r] = True
                 else:
                     risk_mask[r] = False
-            
             X_risk = X[risk_mask] #Isolate only those at risk (this is "i belonging to Rj" in the slides)
 
             x_i_transp_beta = X_risk.dot(beta) #x_i * beta in the slides
             weights = np.exp(x_i_transp_beta) #Exponential of the above
-            weights_col = weights.reshape(len(weights),1)#make this aray (n,1) for multiplication below
+            weights_col = weights.reshape(len(weights),1)#make this array (n,1) for multiplication below
             #Risk summations 
             sum_exp_term = np.sum(weights_col) #Summation of the pure exponential term
             S1 = np.sum(X_risk * weights_col, axis=0) #Multiplies each column of X_risk by weights_col
-            S2 = (X_risk.T).dot(X_risk * weights_col) #The term 
-
+            
             x_bar = S1 / sum_exp_term #see slides
 
             #Breslow tie-breaker, count deaths
             for pt in range(0,n):
-                if (time[pt] == unique_t):#TODO make it robust for non-integers
+                if (np.fabs(time[pt] - unique_t)<float_tol):
                     tied_event_mask[pt] = True
                 else:
                     tied_event_mask[pt] = False
@@ -261,25 +263,28 @@ def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
             d_t = X_event.shape[0] #number of deaths inferred by the shape
 
             x_event_sum = np.sum(X_event, axis=0)
-            loglik += np.sum(X_event.dot(beta)) - d_t * np.log(sum_exp_term) 
+            loglik += np.sum(X_event.dot(beta)) - d_t * np.log(sum_exp_term) #l(beta) in the slides
 
-            hessian_term = S2 / sum_exp_term - np.outer(x_bar, x_bar) #Term in Hessian summation formula
+            num_hess = (X_risk.T).dot(X_risk * weights_col) #The term at the numerator of the first term of the Hessian
+            hessian_term = num_hess / sum_exp_term - np.outer(x_bar, x_bar) #Term in Hessian summation formula, see slides
 
             U_beta += x_event_sum - d_t * x_bar #See formula in the slides
             hessian -= d_t * hessian_term
 
-        hessian_stable = hessian - small_delta * np.eye(p) #stabilize hessian for nearly singular cases (AI suggestion here)
-        # Newton-Raphson step:
+        hessian_stable = hessian - numerical_stability_delta * np.eye(p) #stabilize hessian for nearly singular cases (AI suggestion here)
+        # Newton-Raphson step. Conceptually, this is
         # beta_new = beta - inv(H) * U_beta
-        # Faster solve instead of explicitly calculating inv(H)
+        #Calling solve is much faster though and does the same thing
         step = np.linalg.solve(hessian_stable, U_beta)
         beta_new = beta - step
 
-        if np.max(np.abs(U_beta)) < tol:#Checking that U_beta is zero #TODO possible to add convergence on |beta_new-beta|
-            beta = beta_new
+        #Update beta
+        beta = beta_new
+        
+        if np.max(np.abs(U_beta)) < tol:#Checking that U_beta is zero #TODO possible to add convergence on |beta_new-beta| before updating
             break
 
-        beta = beta_new
+        
 
     # Observed information is -Hessian at convergence
     variance = np.linalg.inv(-hessian)
