@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from SurvivalFunctions import compute_survival, compare_survivals, cox_newton_raphson
+from SurvivalFunctions import kaplan_meyer, log_rank_test, cox_newton_raphson
 
 #[times_of_death,S_hat,all_times, n_i, d_i, lost_i, times_of_death_plot, S_hat_plot]
 class TestSurvivalFunctions(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         unsorted_time_of_d_or_lost = [7,12,7,12,11,8,9,6,7,2]
         unsorted_type_of_event = [1,1,1,0,0,1,1,1,0,1]
         survival_data = np.column_stack([unsorted_time_of_d_or_lost,unsorted_type_of_event ])
-        survival_pluto = compute_survival(survival_data)
+        survival_pluto = kaplan_meyer(survival_data)
 
         #Checking times of deaths
         self.assertEqual(len(survival_pluto['KM_times']),7)
@@ -115,7 +115,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         autologous_time_of_events = [1,1,1,2,2,3,4,5,6,7,8,8,10,12,12,14,17,20,27,27,28,30,30,36,38,40,45,50,50,50,63,132,132]
         autologous_type_of_events =     [1,1,1,1,1,1,1,1,1,1,1,1,1 ,1 ,1 ,1 ,1 ,0 ,1 ,1 ,1 ,1 ,1 ,1 ,0 ,0 ,0 ,1 ,1 ,1 ,0 ,0, 0 ]
         survival_data = np.column_stack([autologous_time_of_events,autologous_type_of_events ])
-        survival_autologous = compute_survival(survival_data)
+        survival_autologous = kaplan_meyer(survival_data)
         
         #Checking times of deaths
         self.assertEqual(len(survival_autologous['KM_times']),18)
@@ -158,7 +158,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         allogenic_time_of_events = [1,2,3,4,6,7,12,15,20,21,24,30,60,85,85,86,87,90,100,119,132]
         allogenic_type_of_events = [1,1,1,1,1,1,1 ,0 ,0 ,0 ,1 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0  ,0  ,0 ]
         survival_data = np.column_stack([allogenic_time_of_events, allogenic_type_of_events])
-        survival_allogenic = compute_survival(survival_data)
+        survival_allogenic = kaplan_meyer(survival_data)
         
         #Checking times of deaths
         self.assertEqual(len(survival_allogenic['KM_times']),9);
@@ -192,22 +192,25 @@ class TestSurvivalFunctions(unittest.TestCase):
         allogenic_time_of_events = [1,2,3,4,6,7,12,15,20,21,24,30,60,85,85,86,87,90,100,119,132]
         allogenic_type_of_events = [1,1,1,1,1,1,1 ,0 ,0 ,0 ,1 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0  ,0  ,0 ]
         survival_data = np.column_stack([allogenic_time_of_events, allogenic_type_of_events])
-        survival_allogenic = compute_survival(survival_data)
+        survival_allogenic = kaplan_meyer(survival_data)
         
         autologous_time_of_events = [1,1,1,2,2,3,4,5,6,7,8,8,10,12,12,14,17,20,27,27,28,30,30,36,38,40,45,50,50,50,63,132,132]
         autologous_type_of_events =     [1,1,1,1,1,1,1,1,1,1,1,1,1 ,1 ,1 ,1 ,1 ,0 ,1 ,1 ,1 ,1 ,1 ,1 ,0 ,0 ,0 ,1 ,1 ,1 ,0 ,0, 0 ]
         survival_auto = np.column_stack([autologous_time_of_events,autologous_type_of_events])
-        survival_autologous = compute_survival(survival_auto)
+        survival_autologous = kaplan_meyer(survival_auto)
         
-        results = compare_survivals(survival_allogenic, survival_autologous)
+        results = log_rank_test(survival_allogenic, survival_autologous)
 
         self.assertAlmostEqual(results['u_L'],6.575,2)
         self.assertAlmostEqual(results['s_2_l'],7.884,2)
+        self.assertAlmostEqual(results['p_value'],0.01925,2)
 
-        results_other_way = compare_survivals(survival_autologous, survival_allogenic)
+        results_other_way = log_rank_test(survival_autologous, survival_allogenic)
 
         self.assertAlmostEqual(results_other_way['u_L'],-6.575,2)
         self.assertAlmostEqual(results_other_way['s_2_l'],7.884,2)
+        self.assertAlmostEqual(results_other_way['p_value'],0.01925,2)
+        
     def test_cox_textbook(self):
         time = np.array([2, 3, 4, 5, 6, 7])
         event = np.array([1, 0, 1, 1, 0, 1])

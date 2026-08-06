@@ -1,7 +1,7 @@
 import numpy as np
+from scipy import stats
 
-
-def compute_survival(survival_data):
+def kaplan_meyer(survival_data):
     """
     Calculates Kaplan Meyer survival curves
     
@@ -110,13 +110,36 @@ def compute_survival(survival_data):
         'lost' : lost_i
     }
 
-def compare_survivals(survival_1, survival_2):
-    '''
-    This function takes in two survival curves in the format that is returned by 
-    the compute_survival functions. It goes through them and calculates the values
-    of u_L and s_L^2 that are necessary to perform the log-rank test.
-    u_L and s_L^2 are returned in a dictionary (u_L and  s_2_l are the keys)
-    '''
+def log_rank_test(survival_1, survival_2):
+    """
+    Performs a log-rank test between two Kaplan Meyer survival curves.
+
+    NOTE: The test statistic of the log-rank test is computed with survival_2 as the reference:
+    if 'u_L' is positive, it means more deaths than expected for "survival_2".
+    
+    Therefore, assuming the p_value is small enough for the scenario of interest, 
+    then, if the sign of 'u_L' is positive, it means data support survival_1 improves over survival_2.
+
+    Parameters
+    ----------
+        survival_1: 
+            This is expected to be a dictionary returned by the kaplan_meyer function
+        survival_2:
+            This is expected to be a dictionary returned by the kaplan_meyer function
+    Returns
+    --------
+        A dictionary with the following keys
+
+        p_value:
+          The p-value of the log-rank test
+
+        u_L:
+         The numerator of the test statistic of the log-rank test
+
+        s_2_l:
+         The square of the denominator of the test statistic of the log-rank test
+    """
+
     #First, obtain, from the two, all the times where we need to do something
     to_be_added = []
     for i in range(0, len(survival_2['all_times'])):
@@ -160,15 +183,18 @@ def compare_survivals(survival_1, survival_2):
         if (d_2_i>0 or d_1_i>0):#u_L is computed only when there is a death
             d_total_i = d_2_i + d_1_i
             n_total_i = n_2_i + n_1_i
-            f_i = float(d_total_i)/n_total_i;#float is key otherwise it may do an integer division
+            f_i = float(d_total_i)/n_total_i#float is key otherwise it may do an integer division
             e_i = n_2_i*f_i
             o_minus_e = d_2_i - e_i
             u_l = u_l + o_minus_e
             if (n_total_i>1):
                 s_2_l = s_2_l + (float(n_1_i)*n_2_i*d_total_i*(n_total_i-d_total_i))/(n_total_i*n_total_i*(n_total_i-1))
-                
+    
+    z_stat = u_l/np.sqrt(s_2_l)
+    p_value = 2.0*(1.0-stats.norm.cdf(abs(z_stat)))
     return {'u_L' : u_l,
-            's_2_l' : s_2_l}
+            's_2_l' : s_2_l,
+            'p_value' : p_value}
 
 def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
     """
@@ -180,7 +206,7 @@ def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
         a Numpy matrix with two columns and n rows.
         Each row of the matrix corresponds to an individual. 
         The first columns contains the time, since enrollment, of an event related 
-        to the individual. The event can be detah or lost to follow up
+        to the individual. The event can be detah or lost to follow up (censoreed)
         If the event is death, the correspomnding element in the second column is 1
         If the event is not death, the correspomnding element in the second column is 0
         The patients do not need to be sorted in any way
