@@ -196,7 +196,7 @@ def log_rank_test(survival_1, survival_2):
             's_2_l' : s_2_l,
             'p_value' : p_value}
 
-def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
+def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
     """
     Fit a Cox proportional hazards model using Newton-Raphson.
 
@@ -216,11 +216,15 @@ def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
         For two groups, p=1 and X can be a single column
         with 0 = control and 1 = treatment.
 
+    alpha: float
+        The desired significance level associated with teh confidence intervals. 
+        If 95% confidence intervals are wanted, then alpha=0.05. Defaults to 0.05.
+
     max_iter : int
-        Maximum Newton-Raphson iterations.
+        Maximum Newton-Raphson iterations. Defaults to 50.
 
     tol : float
-        Convergence tolerance.
+        Convergence tolerance. Defaults to 1e-8.
 
     Returns
     -------
@@ -229,6 +233,12 @@ def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
 
     hr : ndarray, shape (p,)
         Hazard ratios, exp(beta).
+
+    upper_bounds : ndarray, shape (p,)
+        The upper bounds of the Hazard Ratios (i.e., the upper bound of exp(beta) )
+    
+    lower_bounds : ndarray, shape (p,)
+        The lower  bounds of the Hazard Ratios (i.e., the lower bound of exp(beta) )
 
     se : ndarray, shape (p,)
         Approximate standard errors of the coefficients beta.
@@ -314,12 +324,17 @@ def cox_newton_raphson(survival_data, X, max_iter=50, tol=1e-8):
 
     # Observed information is -Hessian at convergence
     variance = np.linalg.inv(-hessian)
+    standard_errors  =np.sqrt(np.diag(variance))
 
+    exp_upper_bounds = np.exp(beta + np.abs(stats.norm.ppf(0.5*alpha))*standard_errors)
+    exp_lower_bounds = np.exp(beta - np.abs(stats.norm.ppf(0.5*alpha))*standard_errors)
     ret = {
         'hazard_ratios' : np.exp(beta),
-        'standard_errors' : np.sqrt(np.diag(variance)),
+        'standard_errors' : standard_errors,
         'beta' : beta,
-        'log_likelihood' : loglik
+        'log_likelihood' : loglik,
+        'upper_bounds' : exp_upper_bounds,
+        'lower_bounds' : exp_lower_bounds
     }
     return ret
 

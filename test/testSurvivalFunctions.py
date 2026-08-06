@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from SurvivalFunctions import kaplan_meyer, log_rank_test, cox_newton_raphson
+from SurvivalFunctions import kaplan_meyer, log_rank_test, cox_prop_haz
 
 #[times_of_death,S_hat,all_times, n_i, d_i, lost_i, times_of_death_plot, S_hat_plot]
 class TestSurvivalFunctions(unittest.TestCase):
@@ -217,7 +217,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         survival_data = np.column_stack([time, event])
         group = np.array([0, 0, 1, 1, 0, 1])
         
-        result = cox_newton_raphson(survival_data, group)
+        result = cox_prop_haz(survival_data, group)
         
         self.assertAlmostEqual(result['beta'][0], 0.12853,4)
         self.assertAlmostEqual(result['hazard_ratios'][0], 1.13715,4)
@@ -279,7 +279,8 @@ class TestSurvivalFunctions(unittest.TestCase):
             events[i] = int(events[i])
         survival_data = np.column_stack([times, events])
         vars_l = np.column_stack([var_1,var_2,var_3])
-        result = cox_newton_raphson(survival_data,vars_l)
+        
+        result = cox_prop_haz(survival_data,vars_l)
         self.assertAlmostEqual(result['beta'][0],0.22,2)#coef in the lifelines output
         self.assertAlmostEqual(result['beta'][1],0.05,2)#coef in the lifelines output
         self.assertAlmostEqual(result['beta'][2],0.22,2)#coef in the lifelines output
@@ -290,3 +291,9 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(result['hazard_ratios'][0],1.25,2) #exp(coef) in the lifelines output
         self.assertAlmostEqual(result['hazard_ratios'][1],1.05,2) #exp(coef) in the lifelines output
         self.assertAlmostEqual(result['hazard_ratios'][2],1.24,2) #exp(coef) in the lifelines output
+        self.assertAlmostEqual(result['upper_bounds'][0],1.44,2) #exp(coef) upper in the lifelines output
+        self.assertAlmostEqual(result['upper_bounds'][1],1.24,2) #exp(coef) upper in the lifelines output
+        self.assertAlmostEqual(result['upper_bounds'][2],1.44,2) #exp(coef) upper in the lifelines output
+        self.assertAlmostEqual(result['lower_bounds'][0],1.08,2) #exp(coef) lower in the lifelines output
+        self.assertAlmostEqual(result['lower_bounds'][1],0.89,2) #exp(coef) lower in the lifelines output
+        self.assertAlmostEqual(result['lower_bounds'][2],1.07,2) #exp(coef) lower in the lifelines output
