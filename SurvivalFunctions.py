@@ -11,9 +11,9 @@ def kaplan_meyer(survival_data):
             a Numpy matrix with two columns.
             Each row of the matrix corresponds to an individual. 
             The first columns contains the time, since enrollment, of an event related 
-            to the individual. The event can be detah or lost to follow up
-            If the event is death, the correspomnding element in the second column is 1
-            If the event is not death, the correspomnding element in the second column is 0
+            to the individual. The event can be detah or lost to follow up (censored)
+            If the event is death, the corresponding element in the second column is 1
+            If the event is not death, the corresponding element in the second column is 0
             The patients do not need to be sorted in any way
     Returns
     --------
@@ -131,7 +131,7 @@ def log_rank_test(survival_1, survival_2):
         A dictionary with the following keys
 
         p_value:
-          The p-value of the log-rank test
+          The p-value of the log-rank test (2-sided)
 
         u_L:
          The numerator of the test statistic of the log-rank test
@@ -206,9 +206,9 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
         a Numpy matrix with two columns and n rows.
         Each row of the matrix corresponds to an individual. 
         The first columns contains the time, since enrollment, of an event related 
-        to the individual. The event can be detah or lost to follow up (censoreed)
-        If the event is death, the correspomnding element in the second column is 1
-        If the event is not death, the correspomnding element in the second column is 0
+        to the individual. The event can be detah or lost to follow up (censored)
+        If the event is death, the corresponding element in the second column is 1
+        If the event is not death, the corresponding element in the second column is 0
         The patients do not need to be sorted in any way
 
     X : array-like, shape (n, p)
@@ -217,14 +217,14 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
         with 0 = control and 1 = treatment.
 
     alpha: float
-        The desired significance level associated with teh confidence intervals. 
+        The desired significance level associated with the confidence intervals. 
         If 95% confidence intervals are wanted, then alpha=0.05. Defaults to 0.05.
 
     max_iter : int
         Maximum Newton-Raphson iterations. Defaults to 50.
 
     tol : float
-        Convergence tolerance. Defaults to 1e-8.
+        Convergence tolerance for the Newton Raphson iterations. Defaults to 1e-8.
 
     Returns
     -------
@@ -319,8 +319,6 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
         
         if np.max(np.abs(U_beta)) < tol:#Checking that U_beta is zero #TODO possible to add convergence on |beta_new-beta| before updating
             break
-
-        
 
     # Observed information is -Hessian at convergence
     variance = np.linalg.inv(-hessian)
