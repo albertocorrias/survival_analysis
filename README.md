@@ -14,3 +14,17 @@ There are 3 core functionalities
 This code was developed for educational purposes. The code favours clarity over efficiency, elegance or brevity.
 Some comments in the code refers to lecture notes distributed as part of a course. 
 For professional-grade survival software packages, [lifelines](https://github.com/camdavidsonpilon/lifelines) is recommended.
+
+
+# Sample usage
+
+```python
+import numpy as np
+from SurvivalFunctions import kaplan_meyer, log_rank_test, cox_prop_haz
+
+        time = np.array([2, 3, 4, 5, 6, 7])
+        event = np.array([1, 0, 1, 1, 0, 1])#1 is death, 0 is censored 
+        survival_data = np.column_stack([time, event])
+        km = kaplan_meyer(survival_data)
+        print(km['median_survival_time'])
+```

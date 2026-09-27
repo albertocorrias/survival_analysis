@@ -297,3 +297,12 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(result['lower_bounds'][0],1.08,2) #exp(coef) lower in the lifelines output
         self.assertAlmostEqual(result['lower_bounds'][1],0.89,2) #exp(coef) lower in the lifelines output
         self.assertAlmostEqual(result['lower_bounds'][2],1.07,2) #exp(coef) lower in the lifelines output
+
+    def test_gh_readme(self):
+        time = np.array([2, 3, 4, 5, 6, 7])
+        event = np.array([1, 0, 1, 1, 0, 1])#1 is death, 0 is censored 
+        survival_data = np.column_stack([time, event])
+        km = kaplan_meyer(survival_data)
+        print(km['median_survival_time'])
+        
+
