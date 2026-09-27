@@ -22,9 +22,9 @@ For professional-grade survival software packages, [lifelines](https://github.co
 import numpy as np
 from SurvivalFunctions import kaplan_meyer, log_rank_test, cox_prop_haz
 
-        time = np.array([2, 3, 4, 5, 6, 7])
-        event = np.array([1, 0, 1, 1, 0, 1])#1 is death, 0 is censored 
-        survival_data = np.column_stack([time, event])
-        km = kaplan_meyer(survival_data)
-        print(km['median_survival_time'])
+time = np.array([2, 3, 4, 5, 6, 7])
+event = np.array([1, 0, 1, 1, 0, 1])#1 is death, 0 is censored 
+survival_data = np.column_stack([time, event])
+km = kaplan_meyer(survival_data)
+print(km['median_survival_time'])
 ```
