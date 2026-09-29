@@ -30,6 +30,8 @@ def kaplan_meyer(survival_data):
                             can be used for plotting time versus survival in 
                             the typical "staircase" plots. 
         median_survival_time. The median survival time, defined as the first time the KM curve drops below 0.5. It is 0 if the curve never drops below 0.5
+        times_censored. The times when a censored observation is. Useful for plotting
+        s_hat_censored. The value of the KM curve at the censored time. Useful for plotting
         all_times. It is an array with all the times of event (deaths or otherwise)
         n_i: It is an array with the total number of 
              individuals still alive just before the corresponding 
@@ -61,6 +63,8 @@ def kaplan_meyer(survival_data):
     lost_i = [0]
     i=0
     all_times = [0.0]
+    times_lost = [] #Times of cenosred data (for plotting)
+    s_hat_lost = [] #Corresponding values of of KM curve
     while(i<N):
         time_of_interest = time_of_events[i]
         #determine number of events at this time
@@ -82,6 +86,10 @@ def kaplan_meyer(survival_data):
             S_hat_plot.append(new_value)
             times_of_death.append(time_of_interest)
             times_of_death_plot.append(time_of_interest)
+        
+        if (lost_at_i > 0):
+            times_lost.append(time_of_interest)
+            s_hat_lost.append(S_hat_plot[-1])
             
         all_times.append(time_of_interest)
 
@@ -104,6 +112,8 @@ def kaplan_meyer(survival_data):
         'KM_times_staircase' : times_of_death_plot,
         'KM_curve_staircase' : S_hat_plot,
         'median_survival_time' : median_surv,
+        'times_censored' : times_lost,
+        's_hat_censored' : s_hat_lost,
         'all_times' : all_times,
         'n_i' : n_i,
         'deaths' : d_i,

@@ -108,8 +108,20 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][9],0.48,4)
         self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][10],0.36,4)
         self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][11],0.36,4)
-        self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][12],0.18,4)            
-        
+        self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][12],0.18,4)
+
+        #Checking censored times
+        self.assertEqual(len(survival_pluto['times_censored']),3)
+        self.assertAlmostEqual(survival_pluto['times_censored'][0],7.0)
+        self.assertAlmostEqual(survival_pluto['times_censored'][1],11.0)
+        self.assertAlmostEqual(survival_pluto['times_censored'][2],12.0)
+
+         #Checking s_hat at censored times
+        self.assertEqual(len(survival_pluto['s_hat_censored']),3)
+        self.assertAlmostEqual(survival_pluto['s_hat_censored'][0],0.6)
+        self.assertAlmostEqual(survival_pluto['s_hat_censored'][1],0.360) #VAlueat the previous death (t=9, s_hat=0.36)
+        self.assertAlmostEqual(survival_pluto['s_hat_censored'][2],0.18)
+
     def test_AutologousExample(self):
         #Autologous transplant example of Stanton Glantz, page 239
         autologous_time_of_events = [1,1,1,2,2,3,4,5,6,7,8,8,10,12,12,14,17,20,27,27,28,30,30,36,38,40,45,50,50,50,63,132,132]
