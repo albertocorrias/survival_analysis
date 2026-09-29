@@ -11,7 +11,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         unsorted_time_of_d_or_lost = [7,12,7,12,11,8,9,6,7,2]
         unsorted_type_of_event = [1,1,1,0,0,1,1,1,0,1]
         survival_data = np.column_stack([unsorted_time_of_d_or_lost,unsorted_type_of_event ])
-        survival_pluto = kaplan_meyer(survival_data)
+        survival_pluto = kaplan_meyer(survival_data, exponential_greenwood = False)#Book uses standard Greenwood for ci
 
         #Checking times of deaths
         self.assertEqual(len(survival_pluto['KM_times']),7)
@@ -119,15 +119,35 @@ class TestSurvivalFunctions(unittest.TestCase):
          #Checking s_hat at censored times
         self.assertEqual(len(survival_pluto['s_hat_censored']),3)
         self.assertAlmostEqual(survival_pluto['s_hat_censored'][0],0.6)
-        self.assertAlmostEqual(survival_pluto['s_hat_censored'][1],0.360) #VAlueat the previous death (t=9, s_hat=0.36)
+        self.assertAlmostEqual(survival_pluto['s_hat_censored'][1],0.360) #Value at the previous death (t=9, s_hat=0.36)
         self.assertAlmostEqual(survival_pluto['s_hat_censored'][2],0.18)
+
+        #Check upper bound (Page 236, Stanton glantz book)
+        self.assertEqual(len(survival_pluto['KM_upper_bound']),7)
+        self.assertEqual(survival_pluto['KM_upper_bound'][0], 1) #We always put that by definition
+        self.assertEqual(survival_pluto['KM_upper_bound'][1], 1)
+        self.assertEqual(survival_pluto['KM_upper_bound'][2], 1)
+        self.assertAlmostEqual(survival_pluto['KM_upper_bound'][3], 0.904,3)
+        self.assertAlmostEqual(survival_pluto['KM_upper_bound'][4], 0.801,3)
+        self.assertAlmostEqual(survival_pluto['KM_upper_bound'][5], 0.676,3)
+        self.assertAlmostEqual(survival_pluto['KM_upper_bound'][6], 0.475,3)
+
+        #Check lower bound (Page 236, Stanton glantz book)
+        self.assertEqual(len(survival_pluto['KM_lower_bound']),7)
+        self.assertEqual(survival_pluto['KM_lower_bound'][0], 1) #We always put that by definition
+        self.assertAlmostEqual(survival_pluto['KM_lower_bound'][1], 0.714,3)
+        self.assertAlmostEqual(survival_pluto['KM_lower_bound'][2], 0.552,3)
+        self.assertAlmostEqual(survival_pluto['KM_lower_bound'][3], 0.296,3)
+        self.assertAlmostEqual(survival_pluto['KM_lower_bound'][4], 0.159,3)
+        self.assertAlmostEqual(survival_pluto['KM_lower_bound'][5], 0.044,3)
+        self.assertAlmostEqual(survival_pluto['KM_lower_bound'][6], 0)
 
     def test_AutologousExample(self):
         #Autologous transplant example of Stanton Glantz, page 239
         autologous_time_of_events = [1,1,1,2,2,3,4,5,6,7,8,8,10,12,12,14,17,20,27,27,28,30,30,36,38,40,45,50,50,50,63,132,132]
-        autologous_type_of_events =     [1,1,1,1,1,1,1,1,1,1,1,1,1 ,1 ,1 ,1 ,1 ,0 ,1 ,1 ,1 ,1 ,1 ,1 ,0 ,0 ,0 ,1 ,1 ,1 ,0 ,0, 0 ]
+        autologous_type_of_events = [1,1,1,1,1,1,1,1,1,1,1,1,1 ,1 ,1 ,1 ,1 ,0 ,1 ,1 ,1 ,1 ,1 ,1 ,0 ,0 ,0 ,1 ,1 ,1 ,0 ,0, 0 ]
         survival_data = np.column_stack([autologous_time_of_events,autologous_type_of_events ])
-        survival_autologous = kaplan_meyer(survival_data)
+        survival_autologous = kaplan_meyer(survival_data, exponential_greenwood = True) #Lifelines uses only exponential greenwood
         
         #Checking times of deaths
         self.assertEqual(len(survival_autologous['KM_times']),18)
@@ -156,13 +176,24 @@ class TestSurvivalFunctions(unittest.TestCase):
         # kmf.fit(autologous_time_of_events, event_observed=autologous_type_of_events)  # or, more succinctly, kmf.fit(T, E)
         # print(kmf.survival_function_['KM_estimate']) #and removing duplicates....
         # print(kmf.median_survival_time_) #17.0
+        # print(kmf.confidence_interval_) #and removing duplicates....
 
         lifelines_correct = np.array([1.000000,0.909091, 0.848485, 0.818182, 0.787879, 0.757576, 0.727273, 0.696970, 0.636364, 0.606061, 0.545455, 0.515152, 0.484848,\
                                      0.420202, 0.387879, 0.323232, 0.290909, 0.145455])
-        
+
+        lifelines_correct_upper_95 = [1.000000, 0.969741, 0.933961, 0.913902, 0.892741, 0.870634, 0.847691, 0.823995, \
+            0.774568, 0.748918, 0.695875, 0.668512, 0.640597, 0.580315, 0.549152, 0.484674, 0.451282, 0.311110]
+
+        lifelines_correct_lower_95 = [1.000000, 0.744053, 0.673591, 0.639372, 0.605942, 0.573273, 0.541325, 0.510060, \
+            0.449452, 0.420060, 0.363027, 0.335371, 0.308287, 0.251233, 0.223929, 0.171861, 0.147176, 0.041452]
+
+        self.assertEqual(len(survival_autologous['KM_times']),len(lifelines_correct_upper_95))
+        self.assertEqual(len(survival_autologous['KM_times']),len(lifelines_correct_lower_95))
         self.assertEqual(len(survival_autologous['KM_times']),len(lifelines_correct))
         for i in range(0,len(survival_autologous['KM_times'])):
             self.assertAlmostEqual(survival_autologous['KM_curve'][i],lifelines_correct[i],3)
+            self.assertAlmostEqual(survival_autologous['KM_lower_bound'][i],lifelines_correct_lower_95[i],3)
+            self.assertAlmostEqual(survival_autologous['KM_upper_bound'][i],lifelines_correct_upper_95[i],3)
 
         self.assertAlmostEqual(17.0,survival_autologous['median_survival_time'])
         
@@ -173,7 +204,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         survival_allogenic = kaplan_meyer(survival_data)
         
         #Checking times of deaths
-        self.assertEqual(len(survival_allogenic['KM_times']),9);
+        self.assertEqual(len(survival_allogenic['KM_times']),9)
         self.assertAlmostEqual(survival_allogenic['KM_times'][0],0.0,4)
         self.assertAlmostEqual(survival_allogenic['KM_times'][1],1.0,4)
         self.assertAlmostEqual(survival_allogenic['KM_times'][2],2.0,4)
@@ -185,7 +216,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(survival_allogenic['KM_times'][8],24.0,4)
         
         #checking survival curve
-        self.assertEqual(len(survival_allogenic['KM_curve']),9);
+        self.assertEqual(len(survival_allogenic['KM_curve']),9)
         self.assertAlmostEqual(survival_allogenic['KM_curve'][0],1.0,4)
         self.assertAlmostEqual(survival_allogenic['KM_curve'][1],0.952,3)
         self.assertAlmostEqual(survival_allogenic['KM_curve'][2],0.904,2)
@@ -200,7 +231,6 @@ class TestSurvivalFunctions(unittest.TestCase):
         
     def test_CompareAutologousAllogenic(self):
         #autologous versus allogenic example. Stanton Glantz, page 240
-
         allogenic_time_of_events = [1,2,3,4,6,7,12,15,20,21,24,30,60,85,85,86,87,90,100,119,132]
         allogenic_type_of_events = [1,1,1,1,1,1,1 ,0 ,0 ,0 ,1 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0  ,0  ,0 ]
         survival_data = np.column_stack([allogenic_time_of_events, allogenic_type_of_events])
@@ -315,6 +345,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         event = np.array([1, 0, 1, 1, 0, 1])#1 is death, 0 is censored 
         survival_data = np.column_stack([time, event])
         km = kaplan_meyer(survival_data)
-        print(km['median_survival_time'])
+        self.assertAlmostEqual(km['median_survival_time'],5)#
+        
         
 

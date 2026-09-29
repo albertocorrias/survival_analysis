@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import stats
 
-def kaplan_meyer(survival_data):
+def kaplan_meyer(survival_data, alpha=0.95,exponential_greenwood=True):
     """
     Calculates Kaplan Meyer survival curves
     
@@ -15,6 +15,11 @@ def kaplan_meyer(survival_data):
             If the event is death, the corresponding element in the second column is 1
             If the event is not death, the corresponding element in the second column is 0
             The patients do not need to be sorted in any way
+        alpha: fraction corresponding to the desired percentage confidence intervals.
+                defaults to 0.95 (95% confience intervals).
+        exponential_greenwood: If True, the confidence intervals are calculated accoridng to the 
+                            exponential Greenwood formula. If False, 
+                            the standard Greenwood formula is used. Default is True
     Returns
     --------
         A dictionary with the following keys
@@ -23,21 +28,27 @@ def kaplan_meyer(survival_data):
                  of deaths in chronological order (first element is zero)
         KM_curve. Kaplan Meyer curve. It is an array with the values of 
                   the Kaplan Meyer survival curve S_hat (first element is 1)
+        KM_upper_bound. The upper bound of the 100*alpha percent confidence interval for KM_curve. Max is 1
+        KM_lower_bound. The upper bound of the 100*alpha percent confidence interval for KM_curve. Min is 0
         KM_times_staircase. Similar to KM_times, but it is an array that 
                             can be used for plotting time versus survival 
                             in the typical "staircase" plots.
         KM_curve_staircase. Similar to KM_curve, but it is an array that 
                             can be used for plotting time versus survival in 
                             the typical "staircase" plots. 
-        median_survival_time. The median survival time, defined as the first time the KM curve drops below 0.5. It is 0 if the curve never drops below 0.5
+        median_survival_time. The median survival time, defined as the first 
+                              time the KM curve drops below 0.5. 
+                              It is 0 if the curve never drops below 0.5
         times_censored. The times when a censored observation is. Useful for plotting
         s_hat_censored. The value of the KM curve at the censored time. Useful for plotting
-        all_times. It is an array with all the times of event (deaths or otherwise)
-        n_i: It is an array with the total number of 
+        all_times. It is a list with all the times of event (deaths or otherwise)
+        n_i. It is a list with the total number of 
              individuals still alive just before the corresponding 
              time in the array 'all_times'
-        deaths: It is an array with the total number of individuals who dies at the corresponding time in the array 'all_times'
-        lost: It is an array with the total number of individuals who are lost to follow up at the corresponding time in the array 'all_times'
+        deaths. It is a list with the total number of individuals who dies at the 
+                corresponding time in the array 'all_times'
+        lost. It is a list  with the total number of individuals 
+        who are lost to follow up at the corresponding time in the array 'all_times'
     """
 
     unsorted_time_of_events  =survival_data[:,0]
@@ -65,6 +76,10 @@ def kaplan_meyer(survival_data):
     all_times = [0.0]
     times_lost = [] #Times of cenosred data (for plotting)
     s_hat_lost = [] #Corresponding values of of KM curve
+    upper_bound = [1.0]
+    lower_bound = [1.0]
+
+    se_terms =[] #Stores d_i/(ni*(ni-di))
     while(i<N):
         time_of_interest = time_of_events[i]
         #determine number of events at this time
@@ -78,14 +93,36 @@ def kaplan_meyer(survival_data):
                 lost_at_i=lost_at_i+1
            
         if (deaths_at_i>0):            
-            S_hat_plot.append(S_hat[-1])
-            times_of_death_plot.append(time_of_interest)
-            new_surv_frac = float(n_i[-1]-deaths_at_i)/n_i[-1]
+            S_hat_plot.append(S_hat[-1])#First append for staircase effect
+            times_of_death_plot.append(time_of_interest)#First append for staircase effect
+            new_surv_frac = float(n_i[-1]-deaths_at_i)/n_i[-1]            
             new_value = S_hat[-1]*new_surv_frac
             S_hat.append(new_value)
-            S_hat_plot.append(new_value)
+            S_hat_plot.append(new_value)#Second append for staircase effect
             times_of_death.append(time_of_interest)
-            times_of_death_plot.append(time_of_interest)
+            times_of_death_plot.append(time_of_interest)#Second append for staircase effect
+
+            #Calculate confidence intervals
+            z_val = stats.norm.ppf(1 - (1-alpha)/2)
+            #First we store the term for the SE
+            if (n_i[-1]>0 and np.fabs(n_i[-1] - deaths_at_i)>1e-8):
+                se_terms.append(deaths_at_i/(n_i[-1]*(n_i[-1]- deaths_at_i)))
+            #Summation in the Greenwood formulas
+            #see https://www.math.wustl.edu/%7Esawyer/handouts/greenwood.pdf
+            summ=0
+            for k in range(0,len(se_terms)):
+                summ = summ + se_terms[k]
+            if (exponential_greenwood == False):
+                stand_err = new_value*np.sqrt(summ) #Greenwood formula
+                upper_bound.append(min(1, new_value + z_val*stand_err))
+                lower_bound.append(max(0, new_value - z_val*stand_err))
+            else: #Use exponential Greenwood
+                if (np.abs(new_value - 1) > 1e-6 and new_value > 0):#Avoid runtime warnings
+                    stand_err = np.sqrt((1/(np.log(new_value)**2))*summ)
+                    c_plus = np.log(-np.log(new_value)) + z_val*stand_err
+                    c_minus = np.log(-np.log(new_value)) - z_val*stand_err
+                    upper_bound.append(np.exp(-np.exp(c_minus)))
+                    lower_bound.append(np.exp(-np.exp(c_plus)))
         
         if (lost_at_i > 0):
             times_lost.append(time_of_interest)
@@ -100,6 +137,8 @@ def kaplan_meyer(survival_data):
         d_i.append(deaths_at_i)
         lost_i.append(lost_at_i)
 
+
+
     median_surv = 0
     for i in range (0,len(S_hat)):
         if (S_hat[i] < 0.5):
@@ -107,17 +146,19 @@ def kaplan_meyer(survival_data):
             break
 
     return  {
-        'KM_times' : times_of_death,
-        'KM_curve' : S_hat,
-        'KM_times_staircase' : times_of_death_plot,
-        'KM_curve_staircase' : S_hat_plot,
+        'KM_times' : np.array(times_of_death),
+        'KM_curve' : np.array(S_hat),
+        'KM_times_staircase' : np.array(times_of_death_plot),
+        'KM_curve_staircase' : np.array(S_hat_plot),
+        'KM_upper_bound' : np.array(upper_bound),
+        'KM_lower_bound' : np.array(lower_bound),
         'median_survival_time' : median_surv,
-        'times_censored' : times_lost,
-        's_hat_censored' : s_hat_lost,
+        'times_censored' : np.array(times_lost),
+        's_hat_censored' : np.array(s_hat_lost),
         'all_times' : all_times,
-        'n_i' : n_i,
-        'deaths' : d_i,
-        'lost' : lost_i
+        'n_i' : np.array(n_i),
+        'deaths' : np.array(d_i),
+        'lost' : np.array(lost_i)
     }
 
 def log_rank_test(survival_1, survival_2):
