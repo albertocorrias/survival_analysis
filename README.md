@@ -37,12 +37,14 @@ plt.plot(km["KM_times_staircase"],km["KM_curve_staircase"])
 plt.plot(km["times_censored"], km["s_hat_censored"], 'kx')
 ```
 After calling plt.show()
+
 ![single_curve](./sample_usage/single_curve.png)
 
 It is also possible to calculate and visualize confidence intervals. Shown below is the default 95% interval (you may pass alpha=0.01 to the kaplan_meier function for 99% or any value of alpha)
 ```python
 plt.fill_between(km["KM_times_staircase"], km["KM_lower_bound_staircase"], km["KM_upper_bound_staircase"], color='purple', alpha=0.3)
 ```
+
 ![single_conf_int](./sample_usage/confidence_intervals.png)
 
 ## Log-rank test between "treatment" and "control"
@@ -83,6 +85,7 @@ plt.fill_between(survival_treatment["KM_times_staircase"],\
          survival_treatment["KM_upper_bound_staircase"],\
          survival_treatment["KM_lower_bound_staircase"], color="orange",alpha=0.2)
 ```
+
 ![two_curves](./sample_usage/two_curves_with_ci.png)
 
 ## Calculations of the hazard ratio (Cox proportional hazards model)
