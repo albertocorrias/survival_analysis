@@ -1,9 +1,9 @@
 import numpy as np
 from scipy import stats
 
-def kaplan_meyer(survival_data, alpha=0.05,exponential_greenwood=True):
+def kaplan_meier(survival_data, alpha=0.05,exponential_greenwood=True):
     """
-    Calculates Kaplan Meyer survival curves
+    Calculates Kaplan Meier survival curves
     
     Parameters
     ----------
@@ -24,10 +24,10 @@ def kaplan_meyer(survival_data, alpha=0.05,exponential_greenwood=True):
     --------
         A dictionary with the following keys
 
-        KM_times. Kaplan Meyer times. It is an array with all the times
+        KM_times. Kaplan Meier times. It is an array with all the times
                  of deaths in chronological order (first element is zero)
-        KM_curve. Kaplan Meyer curve. It is an array with the values of 
-                  the Kaplan Meyer survival curve S_hat (first element is 1)
+        KM_curve. Kaplan Meier curve. It is an array with the values of 
+                  the Kaplan Meier survival curve S_hat (first element is 1)
         KM_upper_bound. The upper bound of the 100*alpha percent confidence interval for KM_curve. Max is 1
         KM_lower_bound. The upper bound of the 100*alpha percent confidence interval for KM_curve. Min is 0
         KM_times_staircase. Similar to KM_times, but it is an array that 
@@ -78,6 +78,8 @@ def kaplan_meyer(survival_data, alpha=0.05,exponential_greenwood=True):
     s_hat_lost = [] #Corresponding values of of KM curve
     upper_bound = [1.0]
     lower_bound = [1.0]
+    upper_bound_staircase = [1.0]
+    lower_bound_staircase = [1.0]
     se_terms =[] #Stores d_i/(ni*(ni-di))
 
     while(i<N):
@@ -112,20 +114,33 @@ def kaplan_meyer(survival_data, alpha=0.05,exponential_greenwood=True):
             summ=0
             for k in range(0,len(se_terms)):
                 summ = summ + se_terms[k]
+            #Create staircase effect by appending last value first
+            upper_bound_staircase.append(upper_bound_staircase[-1])
+            lower_bound_staircase.append(lower_bound_staircase[-1])
             if (exponential_greenwood == False):
-                stand_err = new_value*np.sqrt(summ) #Greenwood formula
-                upper_bound.append(min(1, new_value + z_val*stand_err))
-                lower_bound.append(max(0, new_value - z_val*stand_err))
+                stand_err = new_value*np.sqrt(summ) #Greenwood 
+                ub = min(1, new_value + z_val*stand_err)
+                lb = max(0, new_value - z_val*stand_err)
+                upper_bound.append(ub)
+                lower_bound.append(lb)
+                upper_bound_staircase.append(ub)
+                lower_bound_staircase.append(lb)
             else: #Use exponential Greenwood
                 if (np.abs(new_value - 1) > 1e-6 and new_value > 0):#Avoid runtime warnings
                     stand_err = np.sqrt((1/(np.log(new_value)**2))*summ)
                     c_plus = np.log(-np.log(new_value)) + z_val*stand_err
                     c_minus = np.log(-np.log(new_value)) - z_val*stand_err
-                    upper_bound.append(np.exp(-np.exp(c_minus)))
-                    lower_bound.append(np.exp(-np.exp(c_plus)))
+                    ub = np.exp(-np.exp(c_minus))
+                    lb = np.exp(-np.exp(c_plus))
+                    upper_bound.append(ub)
+                    lower_bound.append(lb)
+                    upper_bound_staircase.append(ub)
+                    lower_bound_staircase.append(lb)
                 else:
                     upper_bound.append(0.0)
                     lower_bound.append(0.0)
+                    upper_bound_staircase.append(0.0)
+                    lower_bound_staircase.append(0.0)
         if (lost_at_i > 0):
             times_lost.append(time_of_interest)
             s_hat_lost.append(S_hat_plot[-1])
@@ -154,6 +169,8 @@ def kaplan_meyer(survival_data, alpha=0.05,exponential_greenwood=True):
         'KM_curve_staircase' : np.array(S_hat_plot),
         'KM_upper_bound' : np.array(upper_bound),
         'KM_lower_bound' : np.array(lower_bound),
+        'KM_upper_bound_staircase' : np.array(upper_bound_staircase),
+        'KM_lower_bound_staircase' : np.array(lower_bound_staircase),
         'median_survival_time' : median_surv,
         'times_censored' : np.array(times_lost),
         's_hat_censored' : np.array(s_hat_lost),
@@ -165,7 +182,7 @@ def kaplan_meyer(survival_data, alpha=0.05,exponential_greenwood=True):
 
 def log_rank_test(survival_1, survival_2):
     """
-    Performs a log-rank test between two Kaplan Meyer survival curves.
+    Performs a log-rank test between two Kaplan Meier survival curves.
 
     NOTE: The test statistic of the log-rank test is computed with survival_2 as the reference:
     if 'u_L' is positive, it means more deaths than expected for "survival_2".
@@ -176,9 +193,9 @@ def log_rank_test(survival_1, survival_2):
     Parameters
     ----------
         survival_1: 
-            This is expected to be a dictionary returned by the kaplan_meyer function
+            This is expected to be a dictionary returned by the kaplan_meier function
         survival_2:
-            This is expected to be a dictionary returned by the kaplan_meyer function
+            This is expected to be a dictionary returned by the kaplan_meier function
     Returns
     --------
         A dictionary with the following keys
@@ -249,7 +266,7 @@ def log_rank_test(survival_1, survival_2):
             's_2_l' : s_2_l,
             'p_value' : p_value}
 
-def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
+def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8, use_efron=True):
     """
     Fits a Cox proportional hazards model using Newton-Raphson.
 
@@ -316,7 +333,7 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
     unique_times = np.sort(np.unique(time[event == 1]))#Here is where the fact that death=1 in the second column is assumed
 
     numerical_stability_delta = 1e-9 #Small delta to improve numerical stability of nearly singular hessian matrices
-    float_tol = 1e-12 #Anpther tolerance to check equality of two floating point times
+    float_tol = 1e-12 #Another tolerance to check equality of two floating point times
     
     #Main Newton-Raphson iterative loop
     for iteration in range(max_iter):
@@ -344,23 +361,57 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
             
             x_bar = S1 / sum_exp_term #see slides
 
-            #Breslow tie-breaker, count deaths
+            #Count deaths
             for pt in range(0,n):
-                if (np.fabs(time[pt] - unique_t)<float_tol):
+                if (np.fabs(time[pt] - unique_t)<float_tol and event[pt]==1):
                     tied_event_mask[pt] = True
                 else:
                     tied_event_mask[pt] = False
             X_event = X[tied_event_mask]
             d_t = X_event.shape[0] #number of deaths inferred by the shape
-
+            
             x_event_sum = np.sum(X_event, axis=0)
-            loglik += np.sum(X_event.dot(beta)) - d_t * np.log(sum_exp_term) #l(beta) in the slides
 
-            num_hess = (X_risk.T).dot(X_risk * weights_col) #The term at the numerator of the first term of the Hessian
-            hessian_term = num_hess / sum_exp_term - np.outer(x_bar, x_bar) #Term in Hessian summation formula, see slides
+            if use_efron == True:
+                # Precompute event set weighted quantities for Efron's adjustment
+                weights_event = np.exp(X_event.dot(beta)).reshape(-1, 1)
+                sum_exp_event = np.sum(weights_event)
+                S1_event = np.sum(X_event * weights_event, axis=0)
+                S2_event = (X_event.T).dot(X_event * weights_event)
 
-            U_beta += x_event_sum - d_t * x_bar #See formula in the slides
-            hessian -= d_t * hessian_term
+                sum_exp_risk = np.sum(weights_col)
+                S1_risk = np.sum(X_risk * weights_col, axis=0)
+                S2_risk = (X_risk.T).dot(X_risk * weights_col)
+
+                loglik += np.sum(X_event.dot(beta))
+                U_beta += x_event_sum
+
+                # Efron inner loop over tied events
+                for l in range(d_t):
+                    w = l / d_t
+                    sum_exp_adj = sum_exp_risk - w * sum_exp_event
+                    S1_adj = S1_risk - w * S1_event
+                    S2_adj = S2_risk - w * S2_event
+
+                    x_bar = S1_adj / sum_exp_adj
+                    loglik -= np.log(sum_exp_adj)
+                    U_beta -= x_bar
+                    hessian -= (S2_adj / sum_exp_adj) - np.outer(x_bar, x_bar)
+
+            else: #do not use efron, default to Breslow to handle ties
+                # Breslow method of tie breaks. See slides
+                sum_exp_term = np.sum(weights_col) #Summation of the pure exponential term
+                S1 = np.sum(X_risk * weights_col, axis=0) #Multiplies each column of X_risk by weights_col
+                
+                x_bar = S1 / sum_exp_term #see slides
+
+                loglik += np.sum(X_event.dot(beta)) - d_t * np.log(sum_exp_term) #l(beta) in the slides
+
+                num_hess = (X_risk.T).dot(X_risk * weights_col) #The term at the numerator of the first term of the Hessian
+                hessian_term = num_hess / sum_exp_term - np.outer(x_bar, x_bar) #Term in Hessian summation formula, see slides
+
+                U_beta += x_event_sum - d_t * x_bar #See formula in the slides
+                hessian -= d_t * hessian_term
 
         hessian_stable = hessian - numerical_stability_delta * np.eye(p) #stabilize hessian for nearly singular cases (AI suggestion here)
         # Newton-Raphson step. Conceptually, this is

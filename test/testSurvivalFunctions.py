@@ -1,8 +1,7 @@
 import unittest
 import numpy as np
-from SurvivalFunctions import kaplan_meyer, log_rank_test, cox_prop_haz
+from SurvivalFunctions import kaplan_meier, log_rank_test, cox_prop_haz
 
-#[times_of_death,S_hat,all_times, n_i, d_i, lost_i, times_of_death_plot, S_hat_plot]
 class TestSurvivalFunctions(unittest.TestCase):
     
     def test_PlutonianExample(self):
@@ -11,7 +10,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         unsorted_time_of_d_or_lost = [7,12,7,12,11,8,9,6,7,2]
         unsorted_type_of_event = [1,1,1,0,0,1,1,1,0,1]
         survival_data = np.column_stack([unsorted_time_of_d_or_lost,unsorted_type_of_event ])
-        survival_pluto = kaplan_meyer(survival_data, exponential_greenwood = False)#Book uses standard Greenwood for ci
+        survival_pluto = kaplan_meier(survival_data, exponential_greenwood = False)#Book uses standard Greenwood for ci
 
         #Checking times of deaths
         self.assertEqual(len(survival_pluto['KM_times']),7)
@@ -147,7 +146,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         autologous_time_of_events = [1,1,1,2,2,3,4,5,6,7,8,8,10,12,12,14,17,20,27,27,28,30,30,36,38,40,45,50,50,50,63,132,132]
         autologous_type_of_events = [1,1,1,1,1,1,1,1,1,1,1,1,1 ,1 ,1 ,1 ,1 ,0 ,1 ,1 ,1 ,1 ,1 ,1 ,0 ,0 ,0 ,1 ,1 ,1 ,0 ,0, 0 ]
         survival_data = np.column_stack([autologous_time_of_events,autologous_type_of_events ])
-        survival_autologous = kaplan_meyer(survival_data, exponential_greenwood = True) #Lifelines uses only exponential greenwood
+        survival_autologous = kaplan_meier(survival_data, exponential_greenwood = True) #Lifelines uses only exponential greenwood
         
         #Checking times of deaths
         self.assertEqual(len(survival_autologous['KM_times']),18)
@@ -201,7 +200,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         allogenic_time_of_events = [1,2,3,4,6,7,12,15,20,21,24,30,60,85,85,86,87,90,100,119,132]
         allogenic_type_of_events = [1,1,1,1,1,1,1 ,0 ,0 ,0 ,1 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0  ,0  ,0 ]
         survival_data = np.column_stack([allogenic_time_of_events, allogenic_type_of_events])
-        survival_allogenic = kaplan_meyer(survival_data)
+        survival_allogenic = kaplan_meier(survival_data)
         
         #Checking times of deaths
         self.assertEqual(len(survival_allogenic['KM_times']),9)
@@ -234,12 +233,12 @@ class TestSurvivalFunctions(unittest.TestCase):
         allogenic_time_of_events = [1,2,3,4,6,7,12,15,20,21,24,30,60,85,85,86,87,90,100,119,132]
         allogenic_type_of_events = [1,1,1,1,1,1,1 ,0 ,0 ,0 ,1 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0  ,0  ,0 ]
         survival_data = np.column_stack([allogenic_time_of_events, allogenic_type_of_events])
-        survival_allogenic = kaplan_meyer(survival_data)
+        survival_allogenic = kaplan_meier(survival_data)
         
         autologous_time_of_events = [1,1,1,2,2,3,4,5,6,7,8,8,10,12,12,14,17,20,27,27,28,30,30,36,38,40,45,50,50,50,63,132,132]
         autologous_type_of_events =     [1,1,1,1,1,1,1,1,1,1,1,1,1 ,1 ,1 ,1 ,1 ,0 ,1 ,1 ,1 ,1 ,1 ,1 ,0 ,0 ,0 ,1 ,1 ,1 ,0 ,0, 0 ]
         survival_auto = np.column_stack([autologous_time_of_events,autologous_type_of_events])
-        survival_autologous = kaplan_meyer(survival_auto)
+        survival_autologous = kaplan_meier(survival_auto)
         
         results = log_rank_test(survival_allogenic, survival_autologous)
 
@@ -253,6 +252,30 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(results_other_way['s_2_l'],7.884,2)
         self.assertAlmostEqual(results_other_way['p_value'],0.01925,2)
         
+
+    def test_log_rank_against_lifelines(self):
+        time_control = [14,15,16,18,19,20,21,21,25,26,28,30,60,85,85,86,87,90,\
+                            100,119,132]
+        type_control = [1,0,1,1,0,1,1 ,0 ,1 ,1 ,1 ,0 ,0 ,1 ,0 ,0 ,1 ,1 ,0\
+                            ,1 ,1]
+        time_treatment = [1,2,3,4, 5,6,7,8,9,10,11,12,13,14,15,16,19,20,21,22,\
+                             28,29,30,36,38,40,45,48,49,50,52,90,95]
+        type_treatment = [1,1,1,1,1,1,1,1,1,1,1,1,1 ,1 ,1 ,1 ,1 ,0 ,1 ,\
+                                 1 ,1 ,1 ,1 ,1 ,0 ,0 ,0 ,1 ,1 ,1 ,0 ,1, 0 ]
+
+        km_control = kaplan_meier(np.column_stack([time_control, type_control]))
+        km_treatment = kaplan_meier(np.column_stack([time_treatment, type_treatment]))
+        lr_control_vs_treat = log_rank_test(km_control,km_treatment)
+        self.assertAlmostEqual(lr_control_vs_treat["p_value"], 0.0053,4)#0.0053 is correct, see below
+        # from lifelines.statistics import logrank_test
+        # results = logrank_test(
+        #     durations_A=time_control,
+        #     durations_B=time_treatment,
+        #     event_observed_A=type_control,
+        #     event_observed_B=type_treatment,
+        # )
+        # print(f"P-value: {results.p_value:.4f}") #0.0053 was printed
+
     def test_cox_textbook(self):
         time = np.array([2, 3, 4, 5, 6, 7])
         event = np.array([1, 0, 1, 1, 0, 1])
@@ -266,7 +289,80 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(result['standard_errors'][0], 1.2535,4)
         self.assertAlmostEqual(result['log_likelihood'], -4.2713,4)
 
-    def test_against_lifelines(self):
+        #No ties here, the two methods should give the same answer. Try with Breslow, no efron
+        result = cox_prop_haz(survival_data, group, use_efron=False)
+        
+        self.assertAlmostEqual(result['beta'][0], 0.12853,4)
+        self.assertAlmostEqual(result['hazard_ratios'][0], 1.13715,4)
+        self.assertAlmostEqual(result['standard_errors'][0], 1.2535,4)
+        self.assertAlmostEqual(result['log_likelihood'], -4.2713,4)
+
+    def test_cox_against_lifelines_with_ties(self):
+        #Data set with some ties (e.g., t=90)
+        time_control = [14,15,16,18,19,20,21,21.5,25,26,28,30,60,85,85.5,86,87,90,\
+                            100,119,132]
+        type_control = [1,0,1,1,0,1,1 ,0 ,1 ,1 ,1 ,0 ,0 ,1 ,0 ,0 ,1 ,1 ,0\
+                            ,1 ,1]
+        time_treatment = [1,2,3,4, 5,6,7,8,9,10,11,12,13,14,15,16,19,20,21.8,22,\
+                             28,29,30,36,38,40,45,48,49,50,52,90,95]
+
+        type_treatment = [1,1,1,1,1,1,1,1,1,1,1,1,1 ,1 ,1 ,1 ,1 ,0 ,1 ,\
+                                 1 ,1 ,1 ,1 ,1 ,0 ,0 ,0 ,1 ,1 ,1 ,0 ,1, 0 ]
+        group = np.concatenate((np.zeros(len(time_control)),np.ones(len(time_treatment))))
+        # Time: Duration until event or censoring
+        time = np.concatenate((time_control,time_treatment))
+        # Event: 1 if event occurred (death/failure), 0 if censored
+        event = np.concatenate((type_control,type_treatment))
+
+        # import pandas as pd
+        # from lifelines import CoxPHFitter
+        
+        # #Combine NumPy arrays into a pandas DataFrame (Required by lifelines)
+        # data = pd.DataFrame({
+        #     'treatment': group,
+        #     'duration': time,
+        #     'event': event
+        # })
+
+        # # Initialize and fit the Cox Proportional Hazards model
+        # cph = CoxPHFitter()
+        # cph.fit(data, duration_col='duration', event_col='event')
+        # cph.print_summary()
+        #GENERATED OUTPUT
+        # <lifelines.CoxPHFitter: fitted with 54 total observations, 14 right-censored observations>
+        #             duration col = 'duration'
+        #                 event col = 'event'
+        #     baseline estimation = breslow
+        # number of observations = 54
+        # number of events observed = 40
+        # partial log-likelihood = -123.31
+        #         time fit was run = 2026-10-01 05:28:28 UTC
+
+        # ---
+        #         coef exp(coef)  se(coef)  coef lower 95%  coef upper 95% exp(coef) lower 95% exp(coef) upper 95%
+        # covariate                                                                                                  
+        # treatment  0.97      2.65      0.36            0.26            1.69                1.30                5.41
+
+        #         cmp to    z    p  -log2(p)
+        # covariate                            
+        # treatment    0.00 2.67 0.01      7.04
+        # ---
+        # Concordance = 0.63
+        # Partial AIC = 248.62
+        # log-likelihood ratio test = 7.88 on 1 df
+        # -log2(p) of ll-ratio test = 7.64
+
+        myresult = cox_prop_haz(np.column_stack([time,event]), group)#use Efron like lifelines
+        self.assertAlmostEqual(myresult['log_likelihood'],-123.31,2)#partial log-likelihood  in the lifelines output above
+        self.assertAlmostEqual(myresult['hazard_ratios'][0],2.65,2) #exp(coef) in the lifelines output above
+        self.assertAlmostEqual(myresult['beta'][0],0.97,2) #exp(coef) in the lifelines output above
+        self.assertAlmostEqual(myresult['upper_bounds'][0],5.41,2) #exp(coef) upper in the lifelines above
+        self.assertAlmostEqual(myresult['lower_bounds'][0],1.30,2) #exp(coef) lower in the lifelines above
+
+
+
+
+    def test_cox_against_lifelines_multiple_covariates(self):
         
         #The following code was run after pip install lifelines
 
@@ -344,7 +440,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         time = np.array([2, 3.5, 4, 4, 12, 15, 25, 30, 32, 36, 39, 42]) #Note two deaths at t=4
         event = np.array([1, 0,  1, 1,  1,  0,  1,  1,  0,  1,  1,  1])#1 is death, 0 is censored 
         survival_data = np.column_stack([time, event])
-        km = kaplan_meyer(survival_data)
+        km = kaplan_meier(survival_data)
         km_times = km["KM_times"]
         km_curve = km["KM_curve"]
         km_upper_bound = km["KM_upper_bound"]
