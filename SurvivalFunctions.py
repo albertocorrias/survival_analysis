@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import stats
 
-def kaplan_meyer(survival_data, alpha=0.95,exponential_greenwood=True):
+def kaplan_meyer(survival_data, alpha=0.05,exponential_greenwood=True):
     """
     Calculates Kaplan Meyer survival curves
     
@@ -15,11 +15,11 @@ def kaplan_meyer(survival_data, alpha=0.95,exponential_greenwood=True):
             If the event is death, the corresponding element in the second column is 1
             If the event is not death, the corresponding element in the second column is 0
             The patients do not need to be sorted in any way
-        alpha: fraction corresponding to the desired percentage confidence intervals.
-                defaults to 0.95 (95% confience intervals).
+        alpha: significance level corresponding to the desired percentage confidence intervals.
+               defaults to 0.05 (95% confidence intervals).
         exponential_greenwood: If True, the confidence intervals are calculated accoridng to the 
-                            exponential Greenwood formula. If False, 
-                            the standard Greenwood formula is used. Default is True
+                               exponential Greenwood formula. If False, 
+                               the standard Greenwood formula is used. Default is True
     Returns
     --------
         A dictionary with the following keys
@@ -78,8 +78,8 @@ def kaplan_meyer(survival_data, alpha=0.95,exponential_greenwood=True):
     s_hat_lost = [] #Corresponding values of of KM curve
     upper_bound = [1.0]
     lower_bound = [1.0]
-
     se_terms =[] #Stores d_i/(ni*(ni-di))
+
     while(i<N):
         time_of_interest = time_of_events[i]
         #determine number of events at this time
@@ -103,7 +103,7 @@ def kaplan_meyer(survival_data, alpha=0.95,exponential_greenwood=True):
             times_of_death_plot.append(time_of_interest)#Second append for staircase effect
 
             #Calculate confidence intervals
-            z_val = stats.norm.ppf(1 - (1-alpha)/2)
+            z_val = np.abs(stats.norm.ppf(alpha*0.5))
             #First we store the term for the SE
             if (n_i[-1]>0 and np.fabs(n_i[-1] - deaths_at_i)>1e-8):
                 se_terms.append(deaths_at_i/(n_i[-1]*(n_i[-1]- deaths_at_i)))
@@ -123,7 +123,9 @@ def kaplan_meyer(survival_data, alpha=0.95,exponential_greenwood=True):
                     c_minus = np.log(-np.log(new_value)) - z_val*stand_err
                     upper_bound.append(np.exp(-np.exp(c_minus)))
                     lower_bound.append(np.exp(-np.exp(c_plus)))
-        
+                else:
+                    upper_bound.append(0.0)
+                    lower_bound.append(0.0)
         if (lost_at_i > 0):
             times_lost.append(time_of_interest)
             s_hat_lost.append(S_hat_plot[-1])
@@ -249,7 +251,7 @@ def log_rank_test(survival_1, survival_2):
 
 def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
     """
-    Fit a Cox proportional hazards model using Newton-Raphson.
+    Fits a Cox proportional hazards model using Newton-Raphson.
 
     Parameters
     ----------
@@ -264,8 +266,8 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
 
     X : array-like, shape (n, p)
         Covariate matrix. p is the number of covariates. 
-        For two groups, p=1 and X can be a single column
-        with 0 = control and 1 = treatment.
+        For two groups (e.g., ontrol vs treatemnt), p=1 and X can be a single column
+        array with 0 = control and 1 = treatment.
 
     alpha: float
         The desired significance level associated with the confidence intervals. 
@@ -279,6 +281,8 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8):
 
     Returns
     -------
+    A dictionary with the following keys:
+
     beta : ndarray, shape (p,)
         Estimated Cox coefficients.
 

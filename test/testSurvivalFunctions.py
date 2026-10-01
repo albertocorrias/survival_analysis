@@ -340,12 +340,65 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(result['lower_bounds'][1],0.89,2) #exp(coef) lower in the lifelines output
         self.assertAlmostEqual(result['lower_bounds'][2],1.07,2) #exp(coef) lower in the lifelines output
 
-    def test_gh_readme(self):
-        time = np.array([2, 3, 4, 5, 6, 7])
-        event = np.array([1, 0, 1, 1, 0, 1])#1 is death, 0 is censored 
+    def test_two_deaths_at_one_time(self):
+        time = np.array([2, 3.5, 4, 4, 12, 15, 25, 30, 32, 36, 39, 42]) #Note two deaths at t=4
+        event = np.array([1, 0,  1, 1,  1,  0,  1,  1,  0,  1,  1,  1])#1 is death, 0 is censored 
         survival_data = np.column_stack([time, event])
         km = kaplan_meyer(survival_data)
-        self.assertAlmostEqual(km['median_survival_time'],5)#
+        km_times = km["KM_times"]
+        km_curve = km["KM_curve"]
+        km_upper_bound = km["KM_upper_bound"]
+        km_lower_bound = km["KM_lower_bound"]
         
+        # from lifelines import KaplanMeierFitter
+        # kmf = KaplanMeierFitter()
+        # kmf.fit(time, event_observed=event)  # or, more succinctly, kmf.fit(T, E)
+        # print(kmf.survival_function_['KM_estimate']) #Output was
+        # 0.0     1.000000
+        # 2.0     0.916667
+        # 3.5     0.916667
+        # 4.0     0.733333
+        # 12.0    0.641667
+        # 15.0    0.641667
+        # 25.0    0.534722
+        # 30.0    0.427778
+        # 32.0    0.427778
+        # 36.0    0.285185
+        # 39.0    0.142593
+        # 42.0    0.000000
+        #Removing censored-only points 3.5, 13, and 32 (should not be in KM curve)
+        lifelines_time_correct = np.array([0.0,2.0, 4.0, 12.0, 25.0, 30.0, 36.0, 39.0, 42.0])
+        lifelines_km_correct = np.array([1.0,0.916667, 0.733333, 0.641667, 0.534722, 0.427778, 0.285185, 0.142593, 0.0])
+        self.assertEqual(len(lifelines_km_correct),len(lifelines_time_correct))
+        self.assertEqual(len(km_curve),len(lifelines_time_correct))
+        self.assertEqual(len(km_times),len(lifelines_time_correct))
+        for i in range(0,len(km_curve)):
+            self.assertAlmostEqual(lifelines_time_correct[i], km_times[i],4)
+            self.assertAlmostEqual(lifelines_km_correct[i], km_curve[i],4)
         
+        #print(kmf.median_survival_time_) #Output was 30.0
+        self.assertAlmostEqual(km['median_survival_time'],30)#
+
+        #print(kmf.confidence_interval_) #output was...
+        # 0.0                 1.000000                1.000000
+        # 2.0                 0.538977                0.987826
+        # 3.5                 0.538977                0.987826
+        # 4.0                 0.378961                0.905617
+        # 12.0                0.302250                0.848294
+        # 15.0                0.302250                0.848294
+        # 25.0                0.212410                0.776504
+        # 30.0                0.138735                0.694157
+        # 32.0                0.138735                0.694157
+        # 36.0                0.052140                0.586906
+        # 39.0                0.008296                0.453081
+        # 42.0                0.000000                0.000000
+        #Removing times of only censored data (3.5,13,32)
+        lifelines_upper_correct = np.array([1.0, 0.987826, 0.905617, 0.848294, 0.776504, 0.694157, 0.586906, 0.453081, 0.0])
+        lifelines_lower_correct = np.array([1.0, 0.538977, 0.378961, 0.302250, 0.212410, 0.138735, 0.052140, 0.008296,  0.0])
+        self.assertEqual(len(lifelines_upper_correct),len(lifelines_lower_correct))
+        self.assertEqual(len(km_lower_bound),len(lifelines_lower_correct))
+        self.assertEqual(len(km_upper_bound),len(lifelines_upper_correct))
+        for i in range(0,len(lifelines_upper_correct)):
+            self.assertAlmostEqual(lifelines_upper_correct[i], km_upper_bound[i],4)
+            self.assertAlmostEqual(lifelines_lower_correct[i], km_lower_bound[i],4)
 
