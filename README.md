@@ -1,3 +1,5 @@
+[![Python application](https://github.com/albertocorrias/survival_analysis/actions/workflows/python-app.yml/badge.svg)](https://github.com/albertocorrias/survival_analysis/actions/workflows/python-app.yml)
+
 # Survival Analysis functions
 
 This repository contains some Python functionalities 
