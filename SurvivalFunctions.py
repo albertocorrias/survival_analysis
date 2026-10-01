@@ -36,6 +36,12 @@ def kaplan_meier(survival_data, alpha=0.05,exponential_greenwood=True):
         KM_curve_staircase. Similar to KM_curve, but it is an array that 
                             can be used for plotting time versus survival in 
                             the typical "staircase" plots. 
+        KM_upper_bound_staircase. Similar to KM_upper_bound, but it is an array
+                                  that can be used in the typical staircase plot 
+                                  of the upper bound
+        KM_lower_bound_staircase. Similar to KM_lower_bound, but it is an array
+                                  that can be used in the typical staircase plot 
+                                  of the lower bound
         median_survival_time. The median survival time, defined as the first 
                               time the KM curve drops below 0.5. 
                               It is 0 if the curve never drops below 0.5
@@ -295,6 +301,10 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8, use_efron=
 
     tol : float
         Convergence tolerance for the Newton Raphson iterations. Defaults to 1e-8.
+    
+    use_efron : If true, the Efron method for deaths at the same time is employed.
+                If False, the simple Breslow tie-breaker method is used instead.
+                Defaults to True
 
     Returns
     -------
