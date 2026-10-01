@@ -12,10 +12,10 @@ plt.xlabel("Time")
 plt.ylabel("Survival probability")
 plt.plot(km["KM_times_staircase"],km["KM_curve_staircase"])
 plt.plot(km["times_censored"], km["s_hat_censored"], 'kx')
-plt.savefig('sample_usage/single_curve.png',dpi=200)
+plt.savefig('sample_usage/single_curve.png',dpi=100)
 
 plt.fill_between(km["KM_times_staircase"], km["KM_lower_bound_staircase"], km["KM_upper_bound_staircase"], color='purple', alpha=0.3)
-plt.savefig('sample_usage/confidence_intervals.png',dpi=200)
+plt.savefig('sample_usage/confidence_intervals.png',dpi=100)
 plt.show()
 
 time_control = [14,15,16,18,19,20,21,21,25,26,28,30,60,85,85,86,87,90,\
@@ -43,7 +43,7 @@ plt.plot(survival_control["KM_times_staircase"],\
 plt.plot(survival_treatment["KM_times_staircase"],\
          survival_treatment["KM_curve_staircase"], label="Treatment")
 plt.legend()
-plt.savefig('sample_usage/two_curves.png')
+plt.savefig('sample_usage/two_curves.png',dpi=100)
 
 plt.fill_between(survival_control["KM_times_staircase"],\
          survival_control["KM_upper_bound_staircase"],\
@@ -51,7 +51,7 @@ plt.fill_between(survival_control["KM_times_staircase"],\
 plt.fill_between(survival_treatment["KM_times_staircase"],\
          survival_treatment["KM_upper_bound_staircase"],\
          survival_treatment["KM_lower_bound_staircase"], color="orange",alpha=0.2)
-plt.savefig('sample_usage/two_curves_with_ci.png')
+plt.savefig('sample_usage/two_curves_with_ci.png',dpi=100)
 plt.show()
 
 control_groups = np.zeros(len((time_control)))
