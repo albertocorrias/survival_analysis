@@ -164,7 +164,7 @@ def kaplan_meier(survival_data, alpha=0.05,exponential_greenwood=True):
     #Add the last horizontal bit in the staircase if the last event is a censored data
     if (type_of_events[-1] == 0):
         S_hat_plot.append(S_hat_plot[-1])
-        times_of_death_plot.append(times_of_death_plot[-1])
+        times_of_death_plot.append(time_of_events[-1])
         upper_bound_staircase.append(upper_bound_staircase[-1])
         lower_bound_staircase.append(lower_bound_staircase[-1])
         
