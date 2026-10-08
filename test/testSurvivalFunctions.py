@@ -79,7 +79,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(survival_pluto['lost'][7],1,4)       
  
         #Checking plot arrays
-        self.assertEqual(len(survival_pluto['KM_times_staircase']),13)
+        self.assertEqual(len(survival_pluto['KM_times_staircase']),14)
         self.assertAlmostEqual(survival_pluto['KM_times_staircase'][0],0.0,4)
         self.assertAlmostEqual(survival_pluto['KM_times_staircase'][1],2.0,4)
         self.assertAlmostEqual(survival_pluto['KM_times_staircase'][2],2.0,4)
@@ -92,9 +92,10 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(survival_pluto['KM_times_staircase'][9],9.0,4)
         self.assertAlmostEqual(survival_pluto['KM_times_staircase'][10],9.0,4)
         self.assertAlmostEqual(survival_pluto['KM_times_staircase'][11],12.0,4)
-        self.assertAlmostEqual(survival_pluto['KM_times_staircase'][12],12.0,4)    
+        self.assertAlmostEqual(survival_pluto['KM_times_staircase'][12],12.0,4)
+        self.assertAlmostEqual(survival_pluto['KM_times_staircase'][13],12.0,4)    
         
-        self.assertEqual(len(survival_pluto['KM_curve_staircase']),13)
+        self.assertEqual(len(survival_pluto['KM_curve_staircase']),14)
         self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][0],1.0,4)
         self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][1],1.0,4)
         self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][2],0.9,4)
@@ -108,6 +109,7 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][10],0.36,4)
         self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][11],0.36,4)
         self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][12],0.18,4)
+        self.assertAlmostEqual(survival_pluto['KM_curve_staircase'][13],0.18,4)
 
         #Checking censored times
         self.assertEqual(len(survival_pluto['times_censored']),3)
