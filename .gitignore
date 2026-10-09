@@ -1,2 +1,6 @@
 __pycache__
 test/__pycache__/*
+*.pyc
+.coverage
+coverage.xml
+
