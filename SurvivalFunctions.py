@@ -109,20 +109,20 @@ def kaplan_meier(survival_data, alpha=0.05,exponential_greenwood=True):
             S_hat_plot.append(new_value)#Second append for staircase effect
             times_of_death.append(time_of_interest)
             times_of_death_plot.append(time_of_interest)#Second append for staircase effect
-
+            #Create staircase effect by appending last value first for the upper and lower bounds as well
+            upper_bound_staircase.append(upper_bound_staircase[-1])
+            lower_bound_staircase.append(lower_bound_staircase[-1])
             #Calculate confidence intervals
             z_val = np.abs(stats.norm.ppf(alpha*0.5))
             #First we store the term for the SE
-            if (n_i[-1]>0 and np.fabs(n_i[-1] - deaths_at_i)>1e-8):
+            if (n_i[-1]>0 and np.fabs(n_i[-1] - deaths_at_i)>1e-8): #TODO Fix bad magic number 1e-8...
                 se_terms.append(deaths_at_i/(n_i[-1]*(n_i[-1]- deaths_at_i)))
+            
             #Summation in the Greenwood formulas
             #see https://www.math.wustl.edu/%7Esawyer/handouts/greenwood.pdf
             summ=0
             for k in range(0,len(se_terms)):
                 summ = summ + se_terms[k]
-            #Create staircase effect by appending last value first
-            upper_bound_staircase.append(upper_bound_staircase[-1])
-            lower_bound_staircase.append(lower_bound_staircase[-1])
             if (exponential_greenwood == False):
                 stand_err = new_value*np.sqrt(summ) #Greenwood 
                 ub = min(1, new_value + z_val*stand_err)
@@ -197,11 +197,14 @@ def log_rank_test(survival_1, survival_2):
     """
     Performs a log-rank test between two Kaplan Meier survival curves.
 
-    NOTE: The test statistic of the log-rank test is computed with survival_2 as the reference:
-    if 'u_L' is positive, it means more deaths than expected for "survival_2".
-    
-    Therefore, assuming the p_value is small enough for the scenario of interest, 
-    then, if the sign of 'u_L' is positive, it means data support survival_1 improves over survival_2.
+    The test statistic of the log-rank test is computed with survival_2 
+    as the reference: the terms of U_L are calculated (d_2 - e_2) 
+    where d_2 and e_2 are deaths and expected deaths in group 2.
+    As such, if 'u_L' is positive, it means more deaths 
+    than expected for "survival_2". Therefore, assuming the p_value 
+    is small enough for the scenario of interest, then, 
+    if the sign of 'u_L' is positive, it means data support 
+    survival_1 improves over survival_2.
 
     Parameters
     ----------
