@@ -300,7 +300,11 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8, use_efron=
     X : array-like, shape (n, p)
         Covariate matrix. p is the number of covariates. 
         For two groups (e.g., ontrol vs treatemnt), p=1 and X can be a single column
-        array with 0 = control and 1 = treatment.
+        array with, for example, 0 = control and 1 = treatment. 
+        Note that in this case, the group with X=0
+        will end up corresponding to the denominator of the hazard ratio.
+        In the example, if you find HR<1 it means reduced risk for the traatment
+        group compared to control.
 
     alpha: float
         The desired significance level associated with the confidence intervals. 
