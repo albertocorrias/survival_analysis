@@ -91,7 +91,7 @@ plt.fill_between(survival_treatment["KM_times_staircase"],\
 ![two_curves](./sample_usage/two_curves_with_ci.png)
 
 ## Calculations of the hazard ratio (Cox proportional hazards model)
-The following code would print out the hazard ratio between treatment and control, starting from the same data as the log-rank test example. It is also possible to obtain confidence intervals for the hazard ratio. The code forst "codifies" the control group events with "0" and the treatment group events with "1". then concatenate all the arrays and calls cox_prop_haz function.
+The following code would print out the hazard ratio between treatment and control, starting from the same data as the log-rank test example. It is also possible to obtain confidence intervals for the hazard ratio. The code first "codifies" the control group events with "0" and the treatment group events with "1". then concatenate all the arrays and calls cox_prop_haz function.
 ```python
 control_groups = np.zeros(len((time_control)))
 treatment_groups = np.ones((len(time_treatment)))
