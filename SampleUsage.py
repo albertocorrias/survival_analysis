@@ -33,8 +33,8 @@ treatment_data = np.column_stack([time_treatment,type_treatment])
 survival_treatment = kaplan_meier(treatment_data)
 
 log_rank_results = log_rank_test(survival_control, survival_treatment)
-print(log_rank_results["p_value"])#0.0244
-
+print(log_rank_results["p_value"])# 0.0049
+print(log_rank_results['u_L']) # 8.42
 plt.figure(2)
 plt.xlabel("Time")
 plt.ylabel("Survival probability")
@@ -55,7 +55,7 @@ plt.savefig('sample_usage/two_curves_with_ci.png',dpi=100)
 plt.show()
 
 control_groups = np.zeros(len((time_control)))
-treatment_groups = np.ones((len(time_treatment)))
+treatment_groups = np.ones(len(time_treatment))
 all_groups = np.concatenate((control_groups,treatment_groups))
 all_times = np.concatenate((time_control, time_treatment))
 all_types = np.concatenate((type_control,type_treatment))

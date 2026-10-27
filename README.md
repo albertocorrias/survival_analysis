@@ -67,10 +67,13 @@ treatment_data = np.column_stack([time_treatment,type_treatment])
 survival_treatment = kaplan_meier(treatment_data)
 
 log_rank_results = log_rank_test(survival_control, survival_treatment)
-print(log_rank_results["p_value"])#0.0244
+print(log_rank_results["p_value"])# 0.0049
 ```
-The two curves can be visualized with our without confidence intervals
+Other than a visual inspection, one can check the sign of the test statistic
 ```python
+print(log_rank_results['u_L']) # 8.42
+```
+If positive, the deaths in the group that is passed in second (treatment group in this case) are higher than it would be expected under the NULL hypothesis of equal survival. The two curves can be visualized with our without confidence intervals.
 plt.figure(2)
 plt.xlabel("Time")
 plt.ylabel("Survival probability")
@@ -91,16 +94,16 @@ plt.fill_between(survival_treatment["KM_times_staircase"],\
 ![two_curves](./sample_usage/two_curves_with_ci.png)
 
 ## Calculations of the hazard ratio (Cox proportional hazards model)
-The following code would print out the hazard ratio between treatment and control, starting from the same data as the log-rank test example. It is also possible to obtain confidence intervals for the hazard ratio. The code first "codifies" the control group events with "0" and the treatment group events with "1". then concatenate all the arrays and calls cox_prop_haz function.
+The following code would print out the hazard ratio between treatment and control, starting from the same data as the log-rank test example. It is also possible to obtain confidence intervals for the hazard ratio. The code first "codifies" the control group events with "0" and the treatment group events with "1". then concatenate all the arrays and calls cox_prop_haz function. The risk of the group coded with 0 is at the denominator. In this example, HR > 1 means increased risk for the treatment group.
 ```python
 control_groups = np.zeros(len((time_control)))
-treatment_groups = np.ones((len(time_treatment)))
+treatment_groups = np.ones(len(time_treatment))
 all_groups = np.concatenate((control_groups,treatment_groups))
 all_times = np.concatenate((time_control, time_treatment))
 all_types = np.concatenate((type_control,type_treatment))
 
 cox_results = cox_prop_haz(np.column_stack([all_times,all_types]), all_groups)
-print(cox_results["hazard_ratios"][0])#2.688
-print(cox_results["upper_bounds"][0])#5.496
-print(cox_results["lower_bounds"][0])# 1.31
+print(cox_results["hazard_ratios"][0])# 2.688
+print(cox_results["upper_bounds"][0])# 5.496
+print(cox_results["lower_bounds"][0])# 1.315
 ```
