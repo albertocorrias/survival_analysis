@@ -74,6 +74,7 @@ Other than a visual inspection, one can check the sign of the test statistic
 print(log_rank_results['u_L']) # 8.42
 ```
 If positive, the deaths in the group that is passed in second (treatment group in this case) are higher than it would be expected under the NULL hypothesis of equal survival. The two curves can be visualized with our without confidence intervals.
+```python
 plt.figure(2)
 plt.xlabel("Time")
 plt.ylabel("Survival probability")
