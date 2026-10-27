@@ -11,9 +11,11 @@ There are 3 core functionalities
   * Comparing two Kaplan Meier suvival curves through the log-rank test
   * Computing hazard ratios (and their confidence intervals) through the Cox proportional hazards model
 
+Please see documentation for each function for more details
+
 # Important note
 
-This code was developed for educational purposes. The code favours clarity over efficiency, elegance or brevity.
+This code was developed for educational purposes. The code favors clarity over efficiency, elegance or brevity.
 Some comments in the code refers to lecture notes distributed as part of a course. 
 For professional-grade survival software packages, [lifelines](https://github.com/camdavidsonpilon/lifelines) is recommended.
 
