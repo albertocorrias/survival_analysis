@@ -361,6 +361,10 @@ class TestSurvivalFunctions(unittest.TestCase):
         self.assertAlmostEqual(myresult['upper_bounds'][0],5.41,2) #exp(coef) upper in the lifelines above
         self.assertAlmostEqual(myresult['lower_bounds'][0],1.30,2) #exp(coef) lower in the lifelines above
 
+        #Check that flipping the coding actually inverse the HR
+        group_inverted = np.concatenate((np.ones(len(time_control)),np.zeros(len(time_treatment)))) #ones and zeros inveretd from above
+        inverted_result = cox_prop_haz(np.column_stack([time,event]), group_inverted)#use Efron like lifelines
+        self.assertAlmostEqual(inverted_result['hazard_ratios'][0],1.0/2.65,2) # inverse of 2.65
 
 
 
