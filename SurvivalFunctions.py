@@ -303,7 +303,7 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8, use_efron=
         array with, for example, 0 = control and 1 = treatment. 
         Note that in this case, the group with X=0
         will end up corresponding to the denominator of the hazard ratio.
-        In the example, if you find HR<1 it means reduced risk for the traatment
+        In the example, if you find HR<1 it means reduced risk for the treatment
         group compared to control.
 
     alpha: float
