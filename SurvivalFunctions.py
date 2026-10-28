@@ -11,7 +11,7 @@ def kaplan_meier(survival_data, alpha=0.05,exponential_greenwood=True):
             a Numpy matrix with two columns.
             Each row of the matrix corresponds to an individual. 
             The first columns contains the time, since enrollment, of an event related 
-            to the individual. The event can be detah or lost to follow up (censored)
+            to the individual. The event can be death or lost to follow up (censored)
             If the event is death, the corresponding element in the second column is 1
             If the event is not death, the corresponding element in the second column is 0
             The patients do not need to be sorted in any way
@@ -292,7 +292,7 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8, use_efron=
         a Numpy matrix with two columns and n rows.
         Each row of the matrix corresponds to an individual. 
         The first columns contains the time, since enrollment, of an event related 
-        to the individual. The event can be detah or lost to follow up (censored)
+        to the individual. The event can be death or lost to follow up (censored)
         If the event is death, the corresponding element in the second column is 1
         If the event is not death, the corresponding element in the second column is 0
         The patients do not need to be sorted in any way
@@ -327,7 +327,7 @@ def cox_prop_haz(survival_data, X, alpha=0.05, max_iter=50, tol=1e-8, use_efron=
     beta : ndarray, shape (p,)
         Estimated Cox coefficients.
 
-    hr : ndarray, shape (p,)
+    hazard_ratios : ndarray, shape (p,)
         Hazard ratios, exp(beta).
 
     upper_bounds : ndarray, shape (p,)
