@@ -17,7 +17,7 @@ Please see documentation for each function for more details
 
 This code was developed for educational purposes. The code favors clarity over efficiency, elegance or brevity.
 Some comments in the code refers to lecture notes distributed as part of a course. 
-For professional-grade survival software packages, [lifelines](https://github.com/camdavidsonpilon/lifelines) is recommended.
+For professional-grade survival software packages, [lifelines](https://github.com/camdavidsonpilon/lifelines) is recommended. Some of the calculations performed here are actually tested against the calculation results obtained by lifelines (see test file)
 
 
 # Sample usage
